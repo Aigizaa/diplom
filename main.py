@@ -1,6 +1,7 @@
+import os
 import sys
 import pandas as pd
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon, QPixmap, QGuiApplication
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QComboBox, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem,
@@ -18,6 +19,119 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import LabelEncoder
 
+
+class LoginWindow(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Авторизация")
+        self.setFixedSize(500, 550)
+        self.move(QGuiApplication.primaryScreen().availableGeometry().center() - self.rect().center())
+
+        icon_path = resource_path("resources/icon2.png")
+        self.setWindowIcon(QIcon(icon_path))
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(30, 30, 30, 30)  # Отступы по краям
+
+        # Большая иконка приложения
+        icon_label = QLabel()
+        try:
+            icon_path = resource_path("resources/icon.png")
+            icon_pixmap = QPixmap(icon_path).scaled(
+                200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            icon_label.setPixmap(icon_pixmap)
+        except Exception as e:
+            print(f"Ошибка загрузки иконки: {str(e)}")
+            icon_label.setText("Иконка приложения")
+            icon_label.setStyleSheet("font-size: 24px;")
+
+        icon_label.setAlignment(Qt.AlignCenter)
+
+        # Название приложения
+        title_label = QLabel("Анализатор биомедицинских данных")
+        title_label.setStyleSheet("""
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        """)
+        title_label.setAlignment(Qt.AlignCenter)
+
+        # Описание приложения
+        description = QLabel("""
+            <p style='text-align: center; font-size: 14px; color: #34495e;'>
+                Программа для анализа клинических показателей пациентов<br>
+                с возможностью визуализации данных и статистического анализа
+            </p>
+            <p style='text-align: center; font-size: 12px; color: #7f8c8d; margin-top: 10px;'>
+                Версия 1.0<br>
+                Для доступа введите пароль
+            </p>
+        """)
+        description.setAlignment(Qt.AlignCenter)
+        description.setWordWrap(True)
+
+        # Поля для ввода
+        self.password_edit = QLineEdit()
+        self.password_edit.setPlaceholderText("Введите пароль")
+        self.password_edit.setEchoMode(QLineEdit.Password)
+        self.password_edit.setStyleSheet("""
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+        """)
+
+        # Кнопка входа
+        btn_login = QPushButton("Войти")
+        btn_login.clicked.connect(self.verify_password)
+        btn_login.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 10px;
+                font-size: 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+
+        # Компоновка элементов
+        layout.addSpacing(10)
+        layout.addWidget(icon_label)
+        layout.addSpacing(10)
+        layout.addWidget(title_label)
+        layout.addWidget(description)
+        layout.addSpacing(20)
+        layout.addWidget(self.password_edit)
+        layout.addSpacing(10)
+        layout.addWidget(btn_login)
+        layout.addStretch()
+
+        # Стиль окна
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #f9f9f9;
+                font-family: Arial;
+            }
+        """)
+
+        self.setLayout(layout)
+
+    def verify_password(self):
+        """Проверка пароля"""
+        password = self.password_edit.text()
+        if password == "admin":  # Пример пароля
+            self.accept()
+        else:
+            QMessageBox.warning(self, "Ошибка", "Неверный пароль!")
+            self.password_edit.clear()
 
 class FilterDialog(QDialog):
     def __init__(self, columns, parent=None):
@@ -84,10 +198,26 @@ class PandasModel(QAbstractTableModel):
         return None
 
     def sort(self, column, order):
-        colname = self._data.columns[column]
-        self._data = self._data.sort_values(colname, ascending=order == Qt.AscendingOrder)
-        self.layoutChanged.emit()
+        """Базовая сортировка по одному столбцу"""
+        if 0 <= column < self.columnCount():
+            colname = self._data.columns[column]
+            self._data = self._data.sort_values(
+                colname,
+                ascending=(order == Qt.AscendingOrder),
+                kind='mergesort'
+            )
+            self.layoutChanged.emit()
 
+
+def resource_path(relative_path):
+    """Получение абсолютного пути к ресурсам"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    path = os.path.join(base_path, relative_path)
+    return path
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -95,7 +225,12 @@ class MainWindow(QMainWindow):
         self.data = None
         self.original_data = None  # Сохраняем оригинальные данные для сброса фильтров
         self.setWindowTitle("Анализ биомедицинских данных")
-        self.setGeometry(100, 100, 1200, 700)
+        self.setGeometry(170, 75, 1200, 700)
+
+        # Установка иконки
+        icon_path = resource_path("resources/icon.png")
+        self.setWindowIcon(QIcon(icon_path))
+
         self.init_ui()
         self.create_menus()
         self.connect_signals()
@@ -119,7 +254,7 @@ class MainWindow(QMainWindow):
         self.btn_save = QPushButton("Сохранить данные")
         self.btn_export = QPushButton("Экспорт графиков")
         self.btn_filter = QPushButton("Фильтровать данные")
-        self.btn_reset_filter = QPushButton("Сбросить фильтры")
+        self.btn_reset_filter = QPushButton("Сбросить")
 
         layout_actions.addWidget(QLabel("Путь к файлу:"))
         layout_actions.addWidget(self.file_path_edit)
@@ -214,6 +349,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(left_panel, stretch=1)
         main_layout.addWidget(right_panel, stretch=3)
 
+
     def connect_signals(self):
         """Подключение сигналов к слотам"""
         self.btn_load.clicked.connect(self.load_data)
@@ -236,15 +372,22 @@ class MainWindow(QMainWindow):
         if file_path:
             try:
                 self.data = pd.read_excel(file_path)
-                self.original_data = self.data.copy()  # Сохраняем оригинальные данные
+                self.original_data = self.data.copy()
                 self.file_path_edit.setText(file_path)
-                self.update_table_view()
+
+                # Инициализация модели с базовой сортировкой
+                self.model = PandasModel(self.data)
+                self.table_view.setModel(self.model)
+                self.table_view.setSortingEnabled(True)  # Включаем сортировку по клику
+                self.table_view.resizeColumnsToContents()
+
                 self.update_columns_list()
                 self.show_stats()
                 self.update_prediction_combos()
                 QMessageBox.information(self, "Успех", "Данные успешно загружены!")
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
+
 
     def update_prediction_combos(self):
         """Обновление комбобоксов для прогнозирования"""
@@ -723,8 +866,16 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Ошибка экспорта:\n{str(e)}")
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+    # Создаем и показываем окно авторизации
+    login = LoginWindow()
+    if login.exec() == QDialog.Accepted:
+        # Если авторизация успешна, показываем главное окно
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec())
+    else:
+        # Если авторизация не пройдена, закрываем приложение
+        sys.exit()
