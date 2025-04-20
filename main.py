@@ -5,7 +5,8 @@ from PySide6.QtGui import QAction, QIcon, QPixmap, QGuiApplication
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QComboBox, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem,
-    QCheckBox, QFileDialog, QTableView, QTextEdit, QMessageBox, QDialog, QFormLayout, QInputDialog, QSizePolicy
+    QCheckBox, QFileDialog, QTableView, QTextEdit, QMessageBox, QDialog, QFormLayout, QInputDialog, QSizePolicy,
+    QDoubleSpinBox, QGridLayout, QScrollArea
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QSettings, QSize, Signal
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -16,7 +17,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -287,10 +288,33 @@ class MainWindow(QMainWindow):
 
         # Вкладка "Статистика"
         self.tab_stats = QWidget()
-        self.stats_text = QTextEdit()
-        self.stats_text.setReadOnly(True)
         layout_tab_stats = QVBoxLayout(self.tab_stats)
-        layout_tab_stats.addWidget(self.stats_text)
+
+        # Таблица для статистики
+        self.stats_table = QTableView()
+        self.stats_table.setSortingEnabled(True)
+        layout_tab_stats.addWidget(self.stats_table, stretch=6)
+
+        # Текстовое поле для дополнительной статистики (переименуем в stats_info_text)
+        self.stats_info_text = QTextEdit()
+        self.stats_info_text.setReadOnly(True)
+        layout_tab_stats.addWidget(self.stats_info_text, stretch=5)
+
+        # Создаем горизонтальный layout для кнопок
+        button_layout = QHBoxLayout()
+
+        # Кнопка для обновления статистики
+        self.btn_refresh_stats = QPushButton("Обновить статистику")
+        self.btn_refresh_stats.clicked.connect(self.show_stats)
+        button_layout.addWidget(self.btn_refresh_stats)
+
+        # Новая кнопка для сохранения статистики
+        self.btn_save_stats = QPushButton("Сохранить статистику")
+        self.btn_save_stats.clicked.connect(self.save_stats)
+        button_layout.addWidget(self.btn_save_stats)
+
+        # Добавляем layout с кнопками в основной layout
+        layout_tab_stats.addLayout(button_layout)
 
         # Вкладка "Визуализация"
         self.tab_visual = QWidget()
@@ -309,34 +333,70 @@ class MainWindow(QMainWindow):
         self.tab_analysis = QWidget()
         self.analysis_text = QTextEdit()
         self.analysis_text.setReadOnly(True)
+        self.analysis_text.setStyleSheet("font-size: 11pt;")
         self.btn_analyze = QPushButton("Выполнить анализ")
 
         layout_tab_analysis = QVBoxLayout(self.tab_analysis)
         layout_tab_analysis.addWidget(self.btn_analyze)
         layout_tab_analysis.addWidget(self.analysis_text)
 
-        # Новая вкладка "Прогнозирование"
+        # Вкладка "Прогнозирование"
         self.tab_prediction = QWidget()
-        self.prediction_text = QTextEdit()
-        self.prediction_text.setReadOnly(True)
-
-        self.feature_combo = QComboBox()
-        self.target_combo = QComboBox()
-        self.model_combo = QComboBox()
-        self.model_combo.addItems(["Линейная регрессия", "Случайный лес"])
-        self.btn_train = QPushButton("Обучить модель")
-        self.btn_predict = QPushButton("Сделать прогноз")
-
-        form_layout = QFormLayout()
-        form_layout.addRow("Признаки:", self.feature_combo)
-        form_layout.addRow("Целевая переменная:", self.target_combo)
-        form_layout.addRow("Модель:", self.model_combo)
-
         layout_tab_prediction = QVBoxLayout(self.tab_prediction)
-        layout_tab_prediction.addLayout(form_layout)
+
+        # Группа для выбора целевой переменной
+        target_group = QGroupBox("Настройки прогнозирования")
+        target_layout = QHBoxLayout(target_group)
+
+        target_layout.addWidget(QLabel("Целевой признак:"))
+        self.target_combo = QComboBox()
+        self.target_combo.setMinimumWidth(200)
+        target_layout.addWidget(self.target_combo)
+        target_layout.addStretch()
+
+        layout_tab_prediction.addWidget(target_group)
+
+        # Кнопка обучения модели
+        self.btn_train = QPushButton("Обучить модель")
+        self.btn_train.setEnabled(False)
         layout_tab_prediction.addWidget(self.btn_train)
+
+        # Область ввода параметров с прокруткой
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setStyleSheet("""
+                QScrollArea { border: 1px solid #ccc; border-radius: 4px; }
+                QLabel { min-width: 120px; font-size: 10pt; }
+                QComboBox, QDoubleSpinBox { 
+                    min-width: 150px; 
+                    max-width: 200px;
+                    font-size: 10pt;
+                }
+            """)
+
+        self.input_container = QWidget()
+        self.input_layout = QGridLayout(self.input_container)
+        self.input_layout.setHorizontalSpacing(20)  # Расстояние между столбцами
+        self.input_layout.setVerticalSpacing(10)  # Расстояние между строками
+        self.scroll_area.setWidget(self.input_container)
+
+        layout_tab_prediction.addWidget(QLabel("Введите значения признаков:"))
+        layout_tab_prediction.addWidget(self.scroll_area)
+
+        # Блок прогноза
+        self.btn_predict = QPushButton("Сделать прогноз")
+        self.btn_predict.setEnabled(True)
+        self.prediction_result = QLabel("Результат прогноза: ")
+        self.prediction_result.setStyleSheet("font-size: 12pt; font-weight: bold; color: #2c3e50;")
+
         layout_tab_prediction.addWidget(self.btn_predict)
-        layout_tab_prediction.addWidget(self.prediction_text)
+        layout_tab_prediction.addWidget(self.prediction_result)
+
+        # Информация о модели
+        self.model_info = QTextEdit()
+        self.model_info.setReadOnly(True)
+        self.model_info.setStyleSheet("font-size: 10pt;")
+        layout_tab_prediction.addWidget(self.model_info)
 
         # Добавляем вкладки
         self.tabs.addTab(self.tab_data, "Данные")
@@ -361,12 +421,17 @@ class MainWindow(QMainWindow):
         self.btn_reset_filter.clicked.connect(self.reset_filter)
         self.btn_train.clicked.connect(self.train_model)
         self.btn_predict.clicked.connect(self.make_prediction)
+        self.target_combo.currentTextChanged.connect(self.on_target_changed)
+
+    def on_target_changed(self, text):
+        """Обработчик изменения целевой переменной"""
+        if hasattr(self, 'data') and self.data is not None:
+            self.update_input_fields()
 
     def load_data(self):
-        """Загрузка данных из Excel файла"""
+        """Загрузка данных с обновлением интерфейса прогнозирования"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Открыть файл Excel", "",
-            "Excel Files (*.xlsx *.xls);;All Files (*)"
+            self, "Открыть файл Excel", "", "Excel Files (*.xlsx *.xls)"
         )
 
         if file_path:
@@ -375,28 +440,107 @@ class MainWindow(QMainWindow):
                 self.original_data = self.data.copy()
                 self.file_path_edit.setText(file_path)
 
-                # Инициализация модели с базовой сортировкой
+                # Инициализация таблицы данных
                 self.model = PandasModel(self.data)
                 self.table_view.setModel(self.model)
-                self.table_view.setSortingEnabled(True)  # Включаем сортировку по клику
+                self.table_view.setSortingEnabled(True)
                 self.table_view.resizeColumnsToContents()
 
+                # Обновление интерфейса
                 self.update_columns_list()
                 self.show_stats()
                 self.update_prediction_combos()
+
                 QMessageBox.information(self, "Успех", "Данные успешно загружены!")
+
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
 
-
     def update_prediction_combos(self):
-        """Обновление комбобоксов для прогнозирования"""
-        if self.data is not None:
-            numeric_cols = self.data.select_dtypes(include=np.number).columns.tolist()
-            self.feature_combo.clear()
-            self.feature_combo.addItems(numeric_cols)
-            self.target_combo.clear()
-            self.target_combo.addItems(numeric_cols)
+        """Обновление списка доступных признаков"""
+        if self.data is None:
+            return
+
+        # Блокируем сигналы во избежание рекурсии
+        self.target_combo.blockSignals(True)
+
+        current_target = self.target_combo.currentText()
+        self.target_combo.clear()
+
+        numeric_cols = self.data.select_dtypes(include=np.number).columns.tolist()
+        self.target_combo.addItems(numeric_cols)
+
+        # Восстанавливаем предыдущий выбор, если возможно
+        if current_target in numeric_cols:
+            self.target_combo.setCurrentText(current_target)
+
+        self.btn_train.setEnabled(len(numeric_cols) > 0)
+        self.btn_predict.setEnabled(True)
+
+        # Разблокируем сигналы
+        self.target_combo.blockSignals(False)
+
+        # Обновляем поля ввода
+        self.update_input_fields()
+
+    def update_input_fields(self):
+        """Обновление полей с ОЧЕНЬ короткими полями ввода (5 колонок)"""
+        # Очистка предыдущих полей
+        for i in reversed(range(self.input_layout.count())):
+            widget = self.input_layout.itemAt(i).widget()
+            if widget is not None:
+                widget.setParent(None)
+
+        self.input_widgets = {}
+
+        if self.data is None or not self.target_combo.currentText():
+            return
+
+        target = self.target_combo.currentText()
+        features = [col for col in self.data.select_dtypes(include=np.number).columns
+                    if col != target]
+
+        # Настройки сетки (5 колонок!)
+        COLS = 3
+        row = col = 0
+
+        for feature in features:
+            # Метка (можно сократить, если названия длинные)
+            label = QLabel(feature)
+            label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            label.setToolTip(feature)  # Полное название в подсказке
+
+            # СУПЕР-КОРОТКИЕ поля ввода (40px)
+            if self.data[feature].nunique() < 10:
+                widget = QComboBox()
+                unique_vals = sorted(self.data[feature].unique())
+                widget.addItems(map(str, unique_vals))
+                widget.setFixedWidth(40)  # Очень узкий комбобокс
+            else:
+                widget = QDoubleSpinBox()
+                widget.setRange(float(self.data[feature].min()),
+                                float(self.data[feature].max()))
+                widget.setValue(float(self.data[feature].median()))
+                widget.setSingleStep(0.1)
+                widget.setFixedWidth(40)  # Очень узкий спинбокс
+
+            widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            self.input_widgets[feature] = widget
+
+            # Добавляем в сетку
+            self.input_layout.addWidget(label, row, col * 2,
+                                        alignment=Qt.AlignLeft | Qt.AlignVCenter)
+            self.input_layout.addWidget(widget, row, col * 2 + 1,
+                                        alignment=Qt.AlignLeft | Qt.AlignVCenter)
+
+            col += 1
+            if col >= COLS:
+                col = 0
+                row += 1
+
+        # Минимальные отступы
+        self.input_layout.setHorizontalSpacing(5)  # Было 10 → стало 5
+        self.input_layout.setVerticalSpacing(3)  # Было 5 → стало 3
 
     def apply_filter(self):
         """Применение фильтра к данным"""
@@ -449,94 +593,91 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Успех", "Фильтры сброшены!")
 
     def train_model(self):
-        """Обучение модели машинного обучения"""
+        """Обучение модели для прогнозирования выбранного признака"""
         if self.data is None:
             QMessageBox.warning(self, "Ошибка", "Сначала загрузите данные!")
             return
 
-        try:
-            features = [self.feature_combo.currentText()]
-            target = self.target_combo.currentText()
-            model_type = self.model_combo.currentText()
+        target = self.target_combo.currentText()
+        if not target:
+            return
 
+        try:
             # Подготовка данных
-            X = self.data[features].values
-            y = self.data[target].values
+            X = self.data.drop(columns=[target]).select_dtypes(include=np.number)
+            y = self.data[target]
+
+            # Заполнение пропусков
+            X = X.fillna(X.median())
 
             # Разделение на обучающую и тестовую выборки
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
 
             # Обучение модели
-            if model_type == "Линейная регрессия":
-                model = LinearRegression()
-            else:  # "Случайный лес"
-                model = RandomForestRegressor(n_estimators=100, random_state=42)
+            self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+            self.model.fit(X_train, y_train)
 
-            model.fit(X_train, y_train)
+            # Активируем кнопку прогноза
+            self.btn_predict.setEnabled(True)
 
-            # Прогнозирование и оценка
-            y_pred = model.predict(X_test)
-            mse = mean_squared_error(y_test, y_pred)
-            r2 = r2_score(y_test, y_pred)
+            # Оценка модели
+            y_pred = self.model.predict(X_test)
+            mae = mean_absolute_error(y_test, y_pred)
 
-            # Сохраняем модель для последующего использования
-            self.current_model = model
-            self.current_features = features
-            self.current_target = target
+            # Важность признаков
+            importances = pd.DataFrame({
+                'Признак': X.columns,
+                'Важность': self.model.feature_importances_
+            }).sort_values('Важность', ascending=False)
 
-            # Вывод результатов
-            report = [
-                f"=== Результаты обучения модели ===",
-                f"Тип модели: {model_type}",
-                f"Признаки: {', '.join(features)}",
-                f"Целевая переменная: {target}",
-                f"Размер обучающей выборки: {len(X_train)}",
-                f"Размер тестовой выборки: {len(X_test)}",
-                f"Среднеквадратичная ошибка (MSE): {mse:.4f}",
-                f"Коэффициент детерминации (R²): {r2:.4f}",
-                "\nКоэффициенты модели:"
+            # Вывод информации
+            info = [
+                f"Модель обучена для прогнозирования: {target}",
+                f"Использовано признаков: {len(X.columns)}",
+                f"Средняя абсолютная ошибка (MAE): {mae:.4f}",
+                "\nВажность признаков:",
+                importances.to_string(index=False)
             ]
 
-            if model_type == "Линейная регрессия":
-                report.append(f"Пересечение (intercept): {model.intercept_:.4f}")
-                for feature, coef in zip(features, model.coef_):
-                    report.append(f"{feature}: {coef:.4f}")
-            else:
-                for feature, importance in zip(features, model.feature_importances_):
-                    report.append(f"{feature}: {importance:.4f} (важность)")
+            self.model_info.setPlainText("\n".join(info))
+            self.update_prediction_combos()  # Обновляем поля ввода
 
-            self.prediction_text.setPlainText("\n".join(report))
+            QMessageBox.information(self, "Успех", "Модель успешно обучена!")
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка обучения модели:\n{str(e)}")
 
     def make_prediction(self):
-        """Создание прогноза с использованием обученной модели"""
-        if not hasattr(self, 'current_model'):
+        """Прогнозирование на основе введенных значений"""
+        if not hasattr(self, 'model'):
             QMessageBox.warning(self, "Ошибка", "Сначала обучите модель!")
             return
 
         try:
-            # Получаем новое значение для прогноза
-            value, ok = QInputDialog.getDouble(
-                self, "Прогноз",
-                f"Введите значение признака '{self.current_features[0]}' для прогноза:",
-                decimals=4
+            # Собираем введенные значения
+            input_data = {}
+            for col, widget in self.input_widgets.items():
+                if isinstance(widget, QComboBox):
+                    input_data[col] = float(widget.currentText())
+                else:
+                    input_data[col] = widget.value()
+
+            # Преобразуем в DataFrame
+            X = pd.DataFrame([input_data])
+
+            # Делаем прогноз
+            prediction = self.model.predict(X)[0]
+            target = self.target_combo.currentText()
+
+            # Показываем результат
+            self.prediction_result.setText(
+                f"Прогнозируемое значение {target}: {prediction:.4f}"
             )
 
-            if ok:
-                # Создаем прогноз
-                prediction = self.current_model.predict([[value]])
-
-                # Показываем результат
-                QMessageBox.information(
-                    self, "Результат прогноза",
-                    f"Прогнозируемое значение '{self.current_target}': {prediction[0]:.4f}\n"
-                    f"При значении '{self.current_features[0]}' = {value}"
-                )
-
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка создания прогноза:\n{str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Ошибка прогнозирования:\n{str(e)}")
 
     def update_table_view(self):
         """Обновление табличного представления данных"""
@@ -600,16 +741,100 @@ class MainWindow(QMainWindow):
         QMessageBox.about(self, "О программе",
                           "Анализатор биомедицинских данных v1.0\n"
                           "Для работы с клиническими показателями пациентов")
+
     def show_stats(self):
-        """Отображение статистики данных"""
-        if self.data is not None:
-            stats = []
-            stats.append("=== Основная статистика ===")
-            stats.append(str(self.data.describe().round(3)))
-            self.stats_text.setPlainText("\n".join(stats))
+        """Отображение статистики данных в таблице на вкладке Статистика"""
+        if self.data is None:
+            QMessageBox.warning(self, "Ошибка", "Сначала загрузите данные!")
+            return
+
+        try:
+            # Только основная статистика для числовых данных
+            stats_df = self.data.describe(include=np.number).round(3)
+
+            # Создаем модель для таблицы
+            model = PandasModel(stats_df)
+            self.stats_table.setModel(model)
+            self.stats_table.resizeColumnsToContents()
+
+            # Дополнительная информация (без лишних полей)
+            stats_text = "=== ОСНОВНАЯ СТАТИСТИКА ===\n"
+            stats_text += f"Всего записей: {len(self.data)}\n"
+
+            # Пропущенные значения (если нужно)
+            missing = self.data.isnull().sum()
+            if missing.sum() > 0:
+                stats_text += "\n=== ПРОПУЩЕННЫЕ ЗНАЧЕНИЯ ===\n"
+                for col, count in missing.items():
+                    if count > 0:
+                        stats_text += f"{col}: {count} ({count / len(self.data):.1%})\n"
+
+            self.stats_info_text.setPlainText(stats_text)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при расчете статистики:\n{str(e)}")
+
+    def get_additional_stats(self):
+        """Возвращает дополнительные статистические показатели в виде текста"""
+        if self.data is None:
+            return "Нет данных для анализа"
+
+        stats = []
+        stats.append("=== ДОПОЛНИТЕЛЬНАЯ СТАТИСТИКА ===")
+
+        # Пропущенные значения
+        missing = self.data.isnull().sum()
+        if missing.sum() > 0:
+            stats.append("\nПропущенные значения:")
+            for col, count in missing.items():
+                if count > 0:
+                    stats.append(f"{col}: {count} ({count / len(self.data):.1%})")
+
+        # Уникальные значения для категориальных данных
+        cat_cols = self.data.select_dtypes(exclude=np.number).columns
+        if len(cat_cols) > 0:
+            stats.append("\nКоличество уникальных значений:")
+            for col in cat_cols:
+                stats.append(f"{col}: {self.data[col].nunique()}")
+
+        return "\n".join(stats)
+
+    def save_stats(self):
+        """Сохранение статистики в файл"""
+        if self.data is None:
+            QMessageBox.warning(self, "Ошибка", "Нет данных для сохранения статистики!")
+            return
+
+        try:
+            # Получаем статистику (только числовые данные)
+            stats_df = self.data.describe(include=np.number).round(3)
+
+            # Диалог сохранения файла
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Сохранить статистику",
+                "",
+                "Excel Files (*.xlsx);;CSV Files (*.csv);;Text Files (*.txt)"
+            )
+
+            if file_path:
+                if file_path.endswith('.xlsx'):
+                    stats_df.to_excel(file_path)
+                elif file_path.endswith('.csv'):
+                    stats_df.to_csv(file_path)
+                else:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write("=== ОСНОВНАЯ СТАТИСТИКА ===\n")
+                        f.write(stats_df.to_string())
+                        f.write("\n\n=== ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ ===\n")
+                        f.write(f"Всего записей: {len(self.data)}\n")
+
+                QMessageBox.information(self, "Успех", "Статистика успешно сохранена!")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка сохранения статистики:\n{str(e)}")
 
     def plot_data(self):
-        """Построение графиков"""
         if self.data is None:
             QMessageBox.warning(self, "Ошибка", "Сначала загрузите данные!")
             return
@@ -629,81 +854,53 @@ class MainWindow(QMainWindow):
 
         try:
             if plot_type == "Гистограмма":
-                # Фильтруем только числовые столбцы
-                numeric_cols = [col for col in selected_cols
-                                if pd.api.types.is_numeric_dtype(self.data[col])]
-
-                if not numeric_cols:
-                    QMessageBox.warning(self, "Ошибка", "Выберите числовые столбцы для гистограммы!")
-                    return
-
-                # Настройки гистограммы
-                bins = min(20, len(self.data) // 5)
-                alpha = 0.7
-
-                # Строим гистограмму и получаем данные столбцов
-                n, bins, patches = ax.hist(
-                    [self.data[col] for col in numeric_cols],
-                    bins=bins,
-                    alpha=alpha,
-                    label=numeric_cols
-                )
-
-                # Добавляем подписи значений на каждый столбец
-                for i in range(len(patches)):
-                    for j in range(len(patches[i])):
-                        height = patches[i][j].get_height()
-                        if height > 0:  # Подписываем только непустые столбцы
-                            ax.text(
-                                patches[i][j].get_x() + patches[i][j].get_width() / 2.,
-                                height,
-                                f'{int(height)}',
-                                ha='center',
-                                va='bottom',
-                                fontsize=8
-                            )
-
-                # Настраиваем заголовки и легенду
-                ax.set_title("Гистограммы распределения", pad=15, fontsize=12)
-                ax.set_xlabel("Значения", fontsize=10)
-                ax.set_ylabel("Частота", fontsize=10)
-                ax.legend(loc='upper right')
-
-                # Добавляем сетку
-                ax.grid(True, linestyle='--', alpha=0.5)
-
-                # Автонастройка отступов
-                self.figure.tight_layout()
+                # Для числовых данных
+                num_cols = [col for col in selected_cols
+                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                if num_cols:
+                    self.data[num_cols].hist(ax=ax, bins=15)
+                    ax.set_title("Гистограммы числовых данных")
+                else:
+                    # Для категориальных данных - bar plot
+                    cat_cols = [col for col in selected_cols
+                                if not pd.api.types.is_numeric_dtype(self.data[col])]
+                    if cat_cols:
+                        self.data[cat_cols[0]].value_counts().plot(kind='bar', ax=ax)
+                        ax.set_title(f"Распределение {cat_cols[0]}")
+                    else:
+                        QMessageBox.warning(self, "Ошибка", "Нет подходящих данных для гистограммы!")
+                        return
 
             elif plot_type == "Боксплот":
-                numeric_cols = [col for col in selected_cols
-                                if pd.api.types.is_numeric_dtype(self.data[col])]
-                if numeric_cols:
-                    self.data[numeric_cols].plot.box(ax=ax)
-                    ax.set_title("Боксплоты распределения")
+                num_cols = [col for col in selected_cols
+                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                if num_cols:
+                    self.data[num_cols].plot.box(ax=ax)
+                    ax.set_title("Боксплоты числовых данных")
                 else:
-                    QMessageBox.warning(self, "Ошибка", "Выберите числовые столбцы!")
+                    QMessageBox.warning(self, "Ошибка", "Боксплоты требуют числовых данных!")
                     return
 
             elif plot_type == "Точечный график":
-                if len(selected_cols) >= 2:
-                    x_col = selected_cols[0]
-                    y_col = selected_cols[1]
-                    if (pd.api.types.is_numeric_dtype(self.data[x_col]) and
-                            pd.api.types.is_numeric_dtype(self.data[y_col])):
-                        self.data.plot.scatter(x=x_col, y=y_col, ax=ax)
-                        ax.set_title(f"{x_col} vs {y_col}")
-                    else:
-                        QMessageBox.warning(self, "Ошибка", "Выберите числовые столбцы!")
+                num_cols = [col for col in selected_cols
+                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                if len(num_cols) >= 2:
+                    x, y = num_cols[0], num_cols[1]
+                    self.data.plot.scatter(x=x, y=y, ax=ax)
+                    ax.set_title(f"{x} vs {y}")
                 else:
-                    QMessageBox.warning(self, "Ошибка", "Выберите 2 столбца!")
+                    QMessageBox.warning(self, "Ошибка", "Нужно выбрать 2 числовых столбца!")
+                    return
 
             elif plot_type == "Линейный график":
-                for col in selected_cols:
-                    if pd.api.types.is_numeric_dtype(self.data[col]):
-                        self.data[col].plot(ax=ax)
-                ax.set_title("Линейные графики")
-                ax.legend(selected_cols)
+                num_cols = [col for col in selected_cols
+                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                if num_cols:
+                    self.data[num_cols].plot(ax=ax)
+                    ax.set_title("Линейные графики")
+                else:
+                    QMessageBox.warning(self, "Ошибка", "Нет числовых данных для построения!")
+                    return
 
             self.canvas.draw()
 
@@ -711,48 +908,90 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Ошибка", f"Ошибка построения графика:\n{str(e)}")
 
     def run_analysis(self):
-        """Выполнение базового анализа данных с тепловой картой корреляции"""
+        """Анализ данных с выводом информации о самых значимых корреляциях"""
         if self.data is None:
             QMessageBox.warning(self, "Ошибка", "Сначала загрузите данные!")
             return
 
-        analysis_report = []
-        analysis_report.append("=== Базовый анализ биомедицинских данных ===")
+        try:
+            # Выбираем только числовые колонки
+            numeric_cols = self.data.select_dtypes(include=np.number).columns
+            if len(numeric_cols) < 2:
+                self.analysis_text.setPlainText("Недостаточно числовых данных для анализа корреляций")
+                return
 
-        # Анализ корреляций
-        numeric_cols = self.data.select_dtypes(include=np.number).columns
-        if len(numeric_cols) > 1:
+            # Считаем корреляционную матрицу
             corr_matrix = self.data[numeric_cols].corr()
-            analysis_report.append("\n=== Корреляционная матрица ===")
-            analysis_report.append(str(corr_matrix.round(2)))
 
-            # Находим сильные корреляции
-            strong_corr = []
+            # Формируем отчет
+            report = []
+            report.append("=== АНАЛИЗ КОРРЕЛЯЦИЙ ===")
+            report.append(f"Проанализировано {len(numeric_cols)} числовых признаков")
+            report.append("\nСамые значимые корреляции (|r| > 0.5):")
+
+            # Собираем все пары с высокой корреляцией
+            high_corrs = []
             for i in range(len(corr_matrix.columns)):
                 for j in range(i + 1, len(corr_matrix.columns)):
-                    if abs(corr_matrix.iloc[i, j]) > 0.7:
-                        strong_corr.append(
-                            f"{corr_matrix.columns[i]} и {corr_matrix.columns[j]}: {corr_matrix.iloc[i, j]:.2f}"
-                        )
-            if strong_corr:
-                analysis_report.append("\n=== Сильные корреляции (|r| > 0.7) ===")
-                analysis_report.extend(strong_corr)
+                    corr = corr_matrix.iloc[i, j]
+                    if abs(corr) > 0.5:  # Порог значимости
+                        high_corrs.append((
+                            abs(corr),
+                            corr_matrix.columns[i],
+                            corr_matrix.columns[j],
+                            corr
+                        ))
 
-            # Создаем отдельное окно для тепловой карты
+            # Сортируем по убыванию абсолютного значения корреляции
+            high_corrs.sort(reverse=True, key=lambda x: x[0])
+
+            # Добавляем в отчет
+            if not high_corrs:
+                report.append("Не найдено значимых корреляций (|r| > 0.5)")
+            else:
+                for strength, col1, col2, corr in high_corrs:
+                    direction = "прямая" if corr > 0 else "обратная"
+                    strength_desc = ""
+                    if abs(corr) > 0.8:
+                        strength_desc = "очень сильная"
+                    elif abs(corr) > 0.6:
+                        strength_desc = "сильная"
+                    else:
+                        strength_desc = "заметная"
+
+                    report.append(
+                        f"{col1} ↔ {col2}: r = {corr:.2f} ({strength_desc} {direction} связь)"
+                    )
+
+            # Добавляем интерпретацию
+            report.append("\n=== ИНТЕРПРЕТАЦИЯ ===")
+            report.append("• r > 0.8 - очень сильная зависимость")
+            report.append("• 0.6 < r ≤ 0.8 - сильная зависимость")
+            report.append("• 0.5 < r ≤ 0.6 - заметная зависимость")
+            report.append("• |r| ≤ 0.5 - слабая или отсутствует зависимость")
+            report.append("\nПримечание: корреляция не означает причинно-следственную связь!")
+
+            self.analysis_text.setPlainText("\n".join(report))
+
+            # Показываем тепловую карту
             self.show_correlation_heatmap(corr_matrix)
 
-        # Анализ категориальных данных
-        cat_cols = self.data.select_dtypes(exclude=np.number).columns
-        if len(cat_cols) > 0:
-            analysis_report.append("\n=== Частоты категориальных переменных ===")
-            for col in cat_cols:
-                analysis_report.append(f"\n{col}:")
-                analysis_report.append(str(self.data[col].value_counts()))
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка анализа данных:\n{str(e)}")
+    def detect_column_type(self, column):
+        """Определяет тип данных в столбце"""
+        if column not in self.data.columns:
+            return None
 
-        self.analysis_text.setPlainText("\n".join(analysis_report))
+        if self.data[column].nunique() == 2:
+            return 'binary'
+        elif pd.api.types.is_numeric_dtype(self.data[column]):
+            return 'numeric'
+        else:
+            return 'categorical'
 
     def show_correlation_heatmap(self, corr_matrix):
-        """Отображает тепловую карту корреляционной матрицы в отдельном окне (на весь экран)"""
+        """Отображает тепловую карту корреляционной матрицы с полными подписями"""
         # Создаем новое окно
         heatmap_window = QDialog(self)
         heatmap_window.setWindowTitle("Тепловая карта корреляции")
@@ -761,14 +1000,17 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
 
-        # Создаем фигуру и холст
-        figure = Figure()
+        # Создаем фигуру с большим размером
+        figure = Figure(figsize=(12, 10), dpi=100)
         canvas = FigureCanvas(figure)
-        canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Растягиваем на все доступное пространство
-        toolbar = NavigationToolbar(canvas, heatmap_window)
 
         # Настраиваем тепловую карту
         ax = figure.add_subplot(111)
+
+        # Уменьшаем размер шрифта аннотаций
+        annot_size = 8 if len(corr_matrix.columns) > 10 else 10
+
+        # Строим тепловую карту
         sns.heatmap(
             corr_matrix,
             ax=ax,
@@ -777,29 +1019,35 @@ class MainWindow(QMainWindow):
             cmap="coolwarm",
             center=0,
             linewidths=0.5,
-            annot_kws={"size": 10}  # Увеличиваем размер аннотаций
+            annot_kws={"size": annot_size},
+            cbar_kws={"shrink": 0.8}
         )
 
-        # Настраиваем подписи
+        # Настраиваем подписи - поворачиваем и выравниваем
         ax.set_xticklabels(
             ax.get_xticklabels(),
             rotation=45,
             horizontalalignment='right',
             fontsize=10
         )
+
         ax.set_yticklabels(
             ax.get_yticklabels(),
             rotation=0,
             fontsize=10
         )
 
-        # Увеличиваем заголовок
-        ax.set_title("Тепловая карта корреляционной матрицы", pad=20, fontsize=12)
+        # Увеличиваем отступы для подписей
+        ax.figure.subplots_adjust(
+            left=0.2,  # Увеличиваем левый отступ для y-меток
+            bottom=0.3  # Увеличиваем нижний отступ для x-меток
+        )
 
         # Автоматически подгоняем макет
         figure.tight_layout()
 
         # Добавляем элементы в layout
+        toolbar = NavigationToolbar(canvas, heatmap_window)
         layout.addWidget(toolbar)
         layout.addWidget(canvas)
 
