@@ -320,7 +320,6 @@ class MainWindow(QMainWindow):
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Гистограмма", "Боксплот", "Точечный график", "Линейный график"])
         self.btn_plot = QPushButton("Построить график")
-
         layout_tab_visual = QVBoxLayout(self.tab_visual)
         layout_tab_visual.addWidget(self.plot_type_combo)
         layout_tab_visual.addWidget(self.btn_plot)
@@ -332,60 +331,60 @@ class MainWindow(QMainWindow):
         self.analysis_text.setReadOnly(True)
         self.analysis_text.setStyleSheet("font-size: 11pt;")
         self.btn_analyze = QPushButton("Выполнить анализ")
-
         layout_tab_analysis = QVBoxLayout(self.tab_analysis)
         layout_tab_analysis.addWidget(self.btn_analyze)
         layout_tab_analysis.addWidget(self.analysis_text)
 
-        # Вкладка "Прогнозирование"
+        # Вкладка "Прогнозирование" - ПОЛНОСТЬЮ ПЕРЕРАБОТАНА
         self.tab_prediction = QWidget()
         layout_tab_prediction = QVBoxLayout(self.tab_prediction)
 
         # Группа для выбора целевой переменной
         target_group = QGroupBox("Настройки прогнозирования")
         target_layout = QHBoxLayout(target_group)
-
         target_layout.addWidget(QLabel("Целевой признак:"))
         self.target_combo = QComboBox()
         self.target_combo.setMinimumWidth(200)
         target_layout.addWidget(self.target_combo)
-        target_layout.addStretch()
-
         layout_tab_prediction.addWidget(target_group)
+
+        # Чекбокс "Выбрать все"
+        self.select_all_checkbox = QCheckBox("Выбрать все признаки")
+        self.select_all_checkbox.setChecked(False)
+        layout_tab_prediction.addWidget(self.select_all_checkbox)
+
+        # Область ввода параметров с прокруткой
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setStyleSheet("""
+                    QScrollArea { border: 1px solid #ccc; border-radius: 4px; }
+                    QLabel { min-width: 50px; font-size: 10pt; }
+                    QComboBox, QDoubleSpinBox { 
+                        min-width: 40px; 
+                        max-width: 100px;
+                        font-size: 10pt;
+                    }
+                """)
+
+        self.input_container = QWidget()
+        self.input_layout = QGridLayout(self.input_container)
+        self.input_layout.setHorizontalSpacing(10)
+        self.input_layout.setVerticalSpacing(5)
+        self.scroll_area.setWidget(self.input_container)
+
+        layout_tab_prediction.addWidget(QLabel("Выберите признаки и введите значения:"))
+        layout_tab_prediction.addWidget(self.scroll_area, stretch=5)
 
         # Кнопка обучения модели
         self.btn_train = QPushButton("Обучить модель")
         self.btn_train.setEnabled(False)
         layout_tab_prediction.addWidget(self.btn_train)
 
-        # Область ввода параметров с прокруткой
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("""
-                QScrollArea { border: 1px solid #ccc; border-radius: 4px; }
-                QLabel { min-width: 50px; font-size: 10pt; }
-                QComboBox, QDoubleSpinBox { 
-                    min-width: 40px; 
-                    max-width: 100px;
-                    font-size: 10pt;
-                }
-            """)
-
-        self.input_container = QWidget()
-        self.input_layout = QGridLayout(self.input_container)
-        self.input_layout.setHorizontalSpacing(20)
-        self.input_layout.setVerticalSpacing(10)
-        self.scroll_area.setWidget(self.input_container)
-
-        layout_tab_prediction.addWidget(QLabel("Введите значения признаков:"))
-        layout_tab_prediction.addWidget(self.scroll_area)
-
         # Блок прогноза
         self.btn_predict = QPushButton("Сделать прогноз")
-        self.btn_predict.setEnabled(True)
+        self.btn_predict.setEnabled(False)
         self.prediction_result = QLabel("Результат прогноза: ")
         self.prediction_result.setStyleSheet("font-size: 12pt; font-weight: bold; color: #2c3e50;")
-
         layout_tab_prediction.addWidget(self.btn_predict)
         layout_tab_prediction.addWidget(self.prediction_result)
 
@@ -847,7 +846,7 @@ class MainWindow(QMainWindow):
 
     # 5.5. Методы прогнозирования
     def train_model(self):
-        """Обучение модели для прогнозирования выбранного признака"""
+        """Модифицированный метод обучения модели"""
         if self.data is None:
             QMessageBox.warning(self, "Ошибка", "Сначала загрузите данные!")
             return
@@ -857,8 +856,16 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            # Подготовка данных
-            X = self.data.drop(columns=[target]).select_dtypes(include=np.number)
+            # Получаем только выбранные признаки
+            selected_features = [feature for feature, widgets in self.feature_widgets.items()
+                                 if widgets['checkbox'].isChecked()]
+
+            if not selected_features:
+                QMessageBox.warning(self, "Ошибка", "Выберите хотя бы один признак!")
+                return
+
+            # Подготовка данных только с выбранными признаками
+            X = self.data[selected_features]
             y = self.data[target]
 
             # Заполнение пропусков
@@ -896,8 +903,6 @@ class MainWindow(QMainWindow):
             ]
 
             self.model_info.setPlainText("\n".join(info))
-            self.update_prediction_combos()  # Обновляем поля ввода
-
             QMessageBox.information(self, "Успех", "Модель успешно обучена!")
 
         except Exception as e:
@@ -910,15 +915,23 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            # Собираем введенные значения
+            # Собираем введенные значения только для выбранных признаков
             input_data = {}
-            for col, widget in self.input_widgets.items():
-                if isinstance(widget, QComboBox):
-                    input_data[col] = float(widget.currentText())
-                else:
-                    input_data[col] = widget.value()
+            for feature, widgets in self.feature_widgets.items():
+                if widgets['checkbox'].isChecked():
+                    if isinstance(widgets['input'], QComboBox):
+                        input_data[feature] = float(widgets['input'].currentText())
+                    else:
+                        input_data[feature] = widgets['input'].value()
 
+            if not input_data:
+                QMessageBox.warning(self, "Ошибка", "Нет выбранных признаков для прогноза!")
+                return
+
+            # Преобразуем в DataFrame с одной строкой
             X = pd.DataFrame([input_data])
+
+            # Делаем прогноз
             prediction = self.model.predict(X)[0]
             target = self.target_combo.currentText()
             self.prediction_result.setText(
@@ -950,60 +963,112 @@ class MainWindow(QMainWindow):
         self.update_input_fields()
 
     def update_input_fields(self):
-        """Обновление полей"""
+        """Обновление полей ввода с чекбоксами"""
         # Очистка предыдущих полей
         for i in reversed(range(self.input_layout.count())):
             widget = self.input_layout.itemAt(i).widget()
             if widget is not None:
                 widget.setParent(None)
 
-        self.input_widgets = {}
+        self.feature_widgets = {}
 
         if self.data is None or not self.target_combo.currentText():
             return
 
         target = self.target_combo.currentText()
-        features = [col for col in self.data.select_dtypes(include=np.number).columns
-                    if col != target]
+        numeric_cols = self.data.select_dtypes(include=np.number).columns.tolist()
+        features = [col for col in numeric_cols if col != target]
 
-        # Настройки сетки
+        # Настройки сетки - 4 колонки: чекбокс, название, значение
         COLS = 4
         row = col = 0
 
         for feature in features:
+            # Чекбокс признака
+            cb = QCheckBox()
+            cb.setChecked(False)
+            cb.stateChanged.connect(self.update_feature_state)
+
+            # Название признака
             label = QLabel(feature)
             label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
-            label.setToolTip(feature)
 
+            # Поле ввода
             if self.data[feature].nunique() < 10:
                 widget = QComboBox()
                 unique_vals = sorted(self.data[feature].unique())
                 widget.addItems(map(str, unique_vals))
-                widget.setFixedWidth(40)
+                widget.setFixedWidth(100)
+                widget.setEnabled(False)
             else:
                 widget = QDoubleSpinBox()
                 widget.setRange(float(self.data[feature].min()),
                                 float(self.data[feature].max()))
                 widget.setValue(float(self.data[feature].median()))
                 widget.setSingleStep(0.1)
-                widget.setFixedWidth(40)
+                widget.setFixedWidth(100)
+                widget.setEnabled(False)
 
-            widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            self.input_widgets[feature] = widget
+            # Сохраняем виджеты
+            self.feature_widgets[feature] = {
+                'checkbox': cb,
+                'label': label,
+                'input': widget
+            }
 
-            self.input_layout.addWidget(label, row, col * 2,
-                                        alignment=Qt.AlignLeft | Qt.AlignVCenter)
-            self.input_layout.addWidget(widget, row, col * 2 + 1,
-                                        alignment=Qt.AlignLeft | Qt.AlignVCenter)
+            # Добавляем в сетку
+            self.input_layout.addWidget(cb, row, col * 3)
+            self.input_layout.addWidget(label, row, col * 3 + 1)
+            self.input_layout.addWidget(widget, row, col * 3 + 2)
 
             col += 1
             if col >= COLS:
                 col = 0
                 row += 1
 
-        # Минимальные отступы
-        self.input_layout.setHorizontalSpacing(5)
-        self.input_layout.setVerticalSpacing(3)
+        # Подключаем обработчик "Выбрать все"
+        self.select_all_checkbox.stateChanged.connect(self.toggle_all_features)
+
+    def toggle_all_features(self, state):
+        """Обработчик чекбокса 'Выбрать все'"""
+        # Блокируем сигналы чекбоксов, чтобы избежать рекурсии
+        for feature, widgets in self.feature_widgets.items():
+            widgets['checkbox'].blockSignals(True)
+
+        # Устанавливаем состояние всех чекбоксов в соответствии с "Выбрать все"
+        for feature, widgets in self.feature_widgets.items():
+            widgets['checkbox'].setChecked(state)
+            self.update_feature_widgets(feature, state)
+
+        # Разблокируем сигналы чекбоксов
+        for feature, widgets in self.feature_widgets.items():
+            widgets['checkbox'].blockSignals(False)
+
+    def update_feature_state(self):
+        """Обновление состояния при изменении чекбокса признака"""
+        # Проверяем, все ли чекбоксы выбраны
+        all_checked = all(widgets['checkbox'].isChecked() for widgets in self.feature_widgets.values())
+
+        # Блокируем сигнал чекбокса "Выбрать все" для избежания рекурсии
+        self.select_all_checkbox.blockSignals(True)
+        self.select_all_checkbox.setChecked(all_checked)
+        self.select_all_checkbox.blockSignals(False)
+
+        # Обновляем состояние конкретного признака
+        for feature, widgets in self.feature_widgets.items():
+            if widgets['checkbox'] == self.sender():
+                self.update_feature_widgets(feature, widgets['checkbox'].isChecked())
+                break
+    def update_feature_widgets(self, feature, is_checked):
+        """Обновление состояния виджетов конкретного признака"""
+        widgets = self.feature_widgets[feature]
+        widgets['input'].setEnabled(is_checked)
+
+        # Визуальное выделение
+        if is_checked:
+            widgets['label'].setStyleSheet("color: black; font-weight: normal;")
+        else:
+            widgets['label'].setStyleSheet("color: gray; font-style: italic;")
 
     def update_table_view(self):
         """Обновление табличного представления данных"""
