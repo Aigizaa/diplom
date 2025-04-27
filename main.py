@@ -4,9 +4,12 @@ import sys
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, accuracy_score
 from sklearn.preprocessing import LabelEncoder
 import seaborn as sns
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -17,9 +20,116 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QComboBox, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem,
     QCheckBox, QFileDialog, QTableView, QTextEdit, QMessageBox, QDialog, QFormLayout,
-    QDoubleSpinBox, QGridLayout, QScrollArea, QInputDialog, QSizePolicy
+    QDoubleSpinBox, QGridLayout, QScrollArea, QInputDialog, QSizePolicy, QSpinBox
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QSettings, QSize, Signal
+
+# Класс для настроек модели машинного обучения
+class ModelSettingsDialog(QDialog):
+    def __init__(self, model_type, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Настройки модели: {model_type}")
+        self.model_type = model_type
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QFormLayout()
+
+        if self.model_type == "Случайный лес":
+            self.n_estimators = QSpinBox()
+            self.n_estimators.setRange(10, 500)
+            self.n_estimators.setValue(100)
+            layout.addRow("Количество деревьев:", self.n_estimators)
+
+            self.max_depth = QSpinBox()
+            self.max_depth.setRange(1, 100)
+            self.max_depth.setValue(10)
+            layout.addRow("Макс. глубина:", self.max_depth)
+
+            self.min_samples_split = QSpinBox()
+            self.min_samples_split.setRange(2, 20)
+            self.min_samples_split.setValue(2)
+            layout.addRow("Мин. образцов для разделения:", self.min_samples_split)
+
+        elif self.model_type == "Логистическая регрессия":
+            self.C = QDoubleSpinBox()
+            self.C.setRange(0.01, 10.0)
+            self.C.setValue(1.0)
+            self.C.setSingleStep(0.1)
+            layout.addRow("Параметр C:", self.C)
+
+            self.max_iter = QSpinBox()
+            self.max_iter.setRange(100, 10000)
+            self.max_iter.setValue(1000)
+            layout.addRow("Макс. итераций:", self.max_iter)
+
+        elif self.model_type == "Линейная регрессия":
+            self.fit_intercept = QCheckBox()
+            self.fit_intercept.setChecked(True)
+            layout.addRow("Подгонка intercept:", self.fit_intercept)
+
+        elif self.model_type == "K-ближайших соседей (KNN)":
+            self.n_neighbors = QSpinBox()
+            self.n_neighbors.setRange(1, 50)
+            self.n_neighbors.setValue(5)
+            layout.addRow("Количество соседей:", self.n_neighbors)
+
+            self.weights = QComboBox()
+            self.weights.addItems(["uniform", "distance"])
+            layout.addRow("Весовая функция:", self.weights)
+
+        elif self.model_type == "Дерево решений":
+            self.max_depth_tree = QSpinBox()
+            self.max_depth_tree.setRange(1, 100)
+            self.max_depth_tree.setValue(5)
+            layout.addRow("Макс. глубина:", self.max_depth_tree)
+
+            self.min_samples_split_tree = QSpinBox()
+            self.min_samples_split_tree.setRange(2, 20)
+            self.min_samples_split_tree.setValue(2)
+            layout.addRow("Мин. образцов для разделения:", self.min_samples_split_tree)
+
+        # Кнопки
+        btn_box = QHBoxLayout()
+        btn_ok = QPushButton("OK")
+        btn_ok.clicked.connect(self.accept)
+        btn_cancel = QPushButton("Отмена")
+        btn_cancel.clicked.connect(self.reject)
+        btn_box.addWidget(btn_ok)
+        btn_box.addWidget(btn_cancel)
+
+        layout.addRow(btn_box)
+        self.setLayout(layout)
+
+    def get_settings(self):
+        settings = {}
+        if self.model_type == "Случайный лес":
+            settings.update({
+                'n_estimators': self.n_estimators.value(),
+                'max_depth': self.max_depth.value(),
+                'min_samples_split': self.min_samples_split.value()
+            })
+        elif self.model_type == "Логистическая регрессия":
+            settings.update({
+                'C': self.C.value(),
+                'max_iter': self.max_iter.value()
+            })
+        elif self.model_type == "Линейная регрессия":
+            settings.update({
+                'fit_intercept': self.fit_intercept.isChecked()
+            })
+        elif self.model_type == "K-ближайших соседей (KNN)":
+            settings.update({
+                'n_neighbors': self.n_neighbors.value(),
+                'weights': self.weights.currentText()
+            })
+        elif self.model_type == "Дерево решений":
+            settings.update({
+                'max_depth': self.max_depth_tree.value(),
+                'min_samples_split': self.min_samples_split_tree.value()
+            })
+        return settings
+
 
 # 2. Вспомогательные функции
 def resource_path(relative_path):
@@ -250,7 +360,6 @@ class MainWindow(QMainWindow):
         self.file_path_edit = QLineEdit()
         self.btn_load = QPushButton("Загрузить Excel")
         self.btn_save = QPushButton("Сохранить данные")
-        self.btn_export = QPushButton("Экспорт графиков")
         self.btn_filter = QPushButton("Фильтровать данные")
         self.btn_reset_filter = QPushButton("Сбросить")
 
@@ -258,7 +367,6 @@ class MainWindow(QMainWindow):
         layout_actions.addWidget(self.file_path_edit)
         layout_actions.addWidget(self.btn_load)
         layout_actions.addWidget(self.btn_save)
-        layout_actions.addWidget(self.btn_export)
         layout_actions.addWidget(self.btn_filter)
         layout_actions.addWidget(self.btn_reset_filter)
         left_layout.addWidget(group_actions)
@@ -318,12 +426,15 @@ class MainWindow(QMainWindow):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.plot_type_combo = QComboBox()
-        self.plot_type_combo.addItems(["Гистограмма", "Боксплот", "Точечный график", "Линейный график"])
+        self.plot_type_combo.addItems(["Гистограмма", "Боксплот", "Точечный график", "Линейный график", "Круговая диаграмма"])
         self.btn_plot = QPushButton("Построить график")
+        self.btn_export = QPushButton("Экспорт графиков")  # Перенесена сюда кнопка экспорта
         layout_tab_visual = QVBoxLayout(self.tab_visual)
         layout_tab_visual.addWidget(self.plot_type_combo)
         layout_tab_visual.addWidget(self.btn_plot)
+        layout_tab_visual.addWidget(self.btn_export)
         layout_tab_visual.addWidget(self.canvas)
+
 
         # Вкладка "Анализ"
         self.tab_analysis = QWidget()
@@ -339,14 +450,28 @@ class MainWindow(QMainWindow):
         self.tab_prediction = QWidget()
         layout_tab_prediction = QVBoxLayout(self.tab_prediction)
 
-        # Группа для выбора целевой переменной
-        target_group = QGroupBox("Настройки прогнозирования")
-        target_layout = QHBoxLayout(target_group)
-        target_layout.addWidget(QLabel("Целевой признак:"))
+        # Группа для выбора модели и целевой переменной
+
+        model_group = QGroupBox("Настройки прогнозирования")
+        model_layout = QGridLayout(model_group)
+
+        model_layout.addWidget(QLabel("Модель:"), 0, 0)
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(
+            ["Случайный лес", "Логистическая регрессия", "Линейная регрессия", "K-ближайших соседей (KNN)",
+             "Дерево решений"])
+        model_layout.addWidget(self.model_combo, 0, 1)
+
+        self.btn_model_settings = QPushButton("Настроить модель")
+        self.btn_model_settings.clicked.connect(self.show_model_settings)
+        model_layout.addWidget(self.btn_model_settings, 0, 2)
+
+        model_layout.addWidget(QLabel("Целевой признак:"), 1, 0)
         self.target_combo = QComboBox()
         self.target_combo.setMinimumWidth(200)
-        target_layout.addWidget(self.target_combo)
-        layout_tab_prediction.addWidget(target_group)
+        model_layout.addWidget(self.target_combo, 1, 1)
+
+        layout_tab_prediction.addWidget(model_group)
 
         # Чекбокс "Выбрать все"
         self.select_all_checkbox = QCheckBox("Выбрать все признаки")
@@ -822,6 +947,34 @@ class MainWindow(QMainWindow):
                     QMessageBox.warning(self, "Ошибка", "Нет числовых данных для построения!")
                     return
 
+
+            elif plot_type == "Круговая диаграмма":
+
+                if len(selected_cols) != 1:
+                    QMessageBox.warning(self, "Ошибка", "Выберите ровно один столбец!")
+                    return
+                col = selected_cols[0]
+                if pd.api.types.is_numeric_dtype(self.data[col]):
+                    # Проверяем, является ли столбец бинарным (только 0 и 1)
+                    unique_values = self.data[col].dropna().unique()
+                    if set(unique_values).issubset({0, 1}):
+                        # Обрабатываем бинарные данные отдельно
+                        counts = self.data[col].value_counts()
+                        labels = ['0', '1']  # Явно задаем метки
+                        ax.pie(counts, labels=labels, autopct='%1.1f%%')
+                        ax.set_title(f"Распределение {col} (0 и 1)")
+                    else:
+                        # Для остальных числовых данных - группируем по бинам
+                        counts, bins = np.histogram(self.data[col].dropna(), bins=5)
+                        labels = [f"{bins[i]:.1f}-{bins[i + 1]:.1f}" for i in range(len(counts))]
+                        ax.pie(counts, labels=labels, autopct='%1.1f%%')
+                        ax.set_title(f"Распределение {col}")
+                else:
+                    # Для категориальных данных
+                    counts = self.data[col].value_counts()
+                    ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
+                    ax.set_title(f"Распределение {col}")
+
             self.canvas.draw()
 
         except Exception as e:
@@ -843,6 +996,13 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(self, "Успех", "График успешно экспортирован!")
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка", f"Ошибка экспорта:\n{str(e)}")
+
+    def show_model_settings(self):
+        """Показывает диалог настроек модели"""
+        model_type = self.model_combo.currentText()
+        dialog = ModelSettingsDialog(model_type, self)
+        if dialog.exec():
+            self.model_settings = dialog.get_settings()
 
     # 5.5. Методы прогнозирования
     def train_model(self):
@@ -876,8 +1036,81 @@ class MainWindow(QMainWindow):
                 X, y, test_size=0.2, random_state=42
             )
 
+            # Определяем, регрессия или классификация
+            is_classification = not pd.api.types.is_numeric_dtype(y)
+
+            # Если это классификация, преобразуем метки
+            if is_classification:
+                le = LabelEncoder()
+                y_train = le.fit_transform(y_train)
+                y_test = le.transform(y_test)
+
+            # Получаем тип модели и ее настройки
+            model_type = self.model_combo.currentText()
+            settings = getattr(self, 'model_settings', {})
+
+            # Создаем модель в зависимости от выбранного типа
+            if model_type == "Случайный лес":
+                if is_classification:
+                    self.model = RandomForestClassifier(
+                        n_estimators=settings.get('n_estimators', 100),
+                        max_depth=settings.get('max_depth', None),
+                        min_samples_split=settings.get('min_samples_split', 2),
+                        random_state=42
+                    )
+                else:
+                    self.model = RandomForestRegressor(
+                        n_estimators=settings.get('n_estimators', 100),
+                        max_depth=settings.get('max_depth', None),
+                        min_samples_split=settings.get('min_samples_split', 2),
+                        random_state=42
+                    )
+
+            elif model_type == "Логистическая регрессия":
+                if not is_classification:
+                    QMessageBox.warning(self, "Ошибка", "Логистическая регрессия предназначена для классификации!")
+                    return
+                self.model = LogisticRegression(
+                    C=settings.get('C', 1.0),
+                    max_iter=settings.get('max_iter', 1000),
+                    random_state=42
+                )
+
+            elif model_type == "Линейная регрессия":
+                if is_classification:
+                    QMessageBox.warning(self, "Ошибка", "Линейная регрессия предназначена для регрессии!")
+                    return
+                self.model = LinearRegression(
+                    fit_intercept=settings.get('fit_intercept', True)
+                )
+
+            elif model_type == "K-ближайших соседей (KNN)":
+                if is_classification:
+                    self.model = KNeighborsClassifier(
+                        n_neighbors=settings.get('n_neighbors', 5),
+                        weights=settings.get('weights', 'uniform')
+                    )
+                else:
+                    self.model = KNeighborsRegressor(
+                        n_neighbors=settings.get('n_neighbors', 5),
+                        weights=settings.get('weights', 'uniform')
+                    )
+
+            elif model_type == "Дерево решений":
+                if is_classification:
+                    self.model = DecisionTreeClassifier(
+                        max_depth=settings.get('max_depth', None),
+                        min_samples_split=settings.get('min_samples_split', 2),
+                        random_state=42
+                    )
+                else:
+                    self.model = DecisionTreeRegressor(
+                        max_depth=settings.get('max_depth', None),
+                        min_samples_split=settings.get('min_samples_split', 2),
+                        random_state=42
+                    )
+
             # Обучение модели
-            self.model = RandomForestRegressor(n_estimators=100, random_state=42)
             self.model.fit(X_train, y_train)
 
             # Активируем кнопку прогноза
@@ -887,23 +1120,50 @@ class MainWindow(QMainWindow):
             y_pred = self.model.predict(X_test)
             mae = mean_absolute_error(y_test, y_pred)
 
-            # Важность признаков
-            importances = pd.DataFrame({
-                'Признак': X.columns,
-                'Важность': self.model.feature_importances_
-            }).sort_values('Важность', ascending=False)
-
-            # Вывод информации
+            # Формируем информацию о модели
             info = [
-                f"Модель обучена для прогнозирования: {target}",
-                f"Использовано признаков: {len(X.columns)}",
-                f"Средняя абсолютная ошибка (MAE): {mae:.4f}",
-                "\nВажность признаков:",
-                importances.to_string(index=False)
+                f"Модель: {model_type}",
+                f"Тип: {'Классификация' if is_classification else 'Регрессия'}",
+                f"Целевой признак: {target}",
+                f"Использовано признаков: {len(selected_features)}",
+                "\nПараметры модели:",
+                str(settings),
+                "\nМетрики качества:"
             ]
+
+            if is_classification:
+                accuracy = accuracy_score(y_test, y_pred)
+                info.append(f"Точность: {accuracy:.4f}")
+            else:
+                mae = mean_absolute_error(y_test, y_pred)
+                mse = mean_squared_error(y_test, y_pred)
+                r2 = r2_score(y_test, y_pred)
+                info.extend([
+                    f"Средняя абсолютная ошибка (MAE): {mae:.4f}",
+                    f"Среднеквадратичная ошибка (MSE): {mse:.4f}",
+                    f"Коэффициент детерминации (R²): {r2:.4f}"
+                ])
+
+            # Важность признаков (если поддерживается моделью)
+            if hasattr(self.model, 'feature_importances_'):
+                importances = pd.DataFrame({
+                    'Признак': selected_features,
+                    'Важность': self.model.feature_importances_
+                }).sort_values('Важность', ascending=False)
+                info.append("\nВажность признаков:")
+                info.append(importances.to_string(index=False))
+            elif hasattr(self.model, 'coef_'):
+                coefs = pd.DataFrame({
+                    'Признак': selected_features,
+                    'Коэффициент': self.model.coef_[0] if is_classification else self.model.coef_
+                }).sort_values('Коэффициент', key=abs, ascending=False)
+                info.append("\nКоэффициенты модели:")
+                info.append(coefs.to_string(index=False))
 
             self.model_info.setPlainText("\n".join(info))
             QMessageBox.information(self, "Успех", "Модель успешно обучена!")
+
+
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка обучения модели:\n{str(e)}")
