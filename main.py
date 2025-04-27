@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.plot_type_combo = QComboBox()
-        self.plot_type_combo.addItems(["Гистограмма", "Боксплот", "Точечный график", "Линейный график", "Круговая диаграмма"])
+        self.plot_type_combo.addItems(["Гистограмма", "Диаграмма рассеяния по осям", "Точечный график", "Линейный график", "Круговая диаграмма"])
         self.btn_plot = QPushButton("Построить график")
         self.btn_export = QPushButton("Экспорт графиков")  # Перенесена сюда кнопка экспорта
         layout_tab_visual = QVBoxLayout(self.tab_visual)
@@ -434,7 +434,6 @@ class MainWindow(QMainWindow):
         layout_tab_visual.addWidget(self.btn_plot)
         layout_tab_visual.addWidget(self.btn_export)
         layout_tab_visual.addWidget(self.canvas)
-
 
         # Вкладка "Анализ"
         self.tab_analysis = QWidget()
@@ -446,15 +445,13 @@ class MainWindow(QMainWindow):
         layout_tab_analysis.addWidget(self.btn_analyze)
         layout_tab_analysis.addWidget(self.analysis_text)
 
-        # Вкладка "Прогнозирование" - ПОЛНОСТЬЮ ПЕРЕРАБОТАНА
+        # Вкладка "Прогнозирование"
         self.tab_prediction = QWidget()
         layout_tab_prediction = QVBoxLayout(self.tab_prediction)
 
         # Группа для выбора модели и целевой переменной
-
         model_group = QGroupBox("Настройки прогнозирования")
         model_layout = QGridLayout(model_group)
-
         model_layout.addWidget(QLabel("Модель:"), 0, 0)
         self.model_combo = QComboBox()
         self.model_combo.addItems(
@@ -861,7 +858,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn_save)
 
         heatmap_window.setLayout(layout)
-        heatmap_window.exec_()
+        heatmap_window.exec()
 
     def save_heatmap(self, figure):
         """Сохраняет тепловую карту как изображение"""
@@ -895,20 +892,16 @@ class MainWindow(QMainWindow):
 
         plot_type = self.plot_type_combo.currentText()
         self.figure.clear()
-        ax = self.figure.add_subplot(111)
 
         try:
             if plot_type == "Гистограмма":
-                # Для числовых данных
-                num_cols = [col for col in selected_cols
-                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                ax = self.figure.add_subplot(111)
+                num_cols = [col for col in selected_cols if pd.api.types.is_numeric_dtype(self.data[col])]
                 if num_cols:
                     self.data[num_cols].hist(ax=ax, bins=15)
                     ax.set_title("Гистограммы числовых данных")
                 else:
-                    # Для категориальных данных - bar plot
-                    cat_cols = [col for col in selected_cols
-                                if not pd.api.types.is_numeric_dtype(self.data[col])]
+                    cat_cols = [col for col in selected_cols if not pd.api.types.is_numeric_dtype(self.data[col])]
                     if cat_cols:
                         self.data[cat_cols[0]].value_counts().plot(kind='bar', ax=ax)
                         ax.set_title(f"Распределение {cat_cols[0]}")
@@ -916,19 +909,22 @@ class MainWindow(QMainWindow):
                         QMessageBox.warning(self, "Ошибка", "Нет подходящих данных для гистограммы!")
                         return
 
-            elif plot_type == "Боксплот":
-                num_cols = [col for col in selected_cols
-                            if pd.api.types.is_numeric_dtype(self.data[col])]
+            elif plot_type == "Диаграмма рассеяния по осям":
+                num_cols = [col for col in selected_cols if pd.api.types.is_numeric_dtype(self.data[col])]
                 if num_cols:
-                    self.data[num_cols].plot.box(ax=ax)
-                    ax.set_title("Боксплоты числовых данных")
+                    for idx, col in enumerate(num_cols):
+                        ax = self.figure.add_subplot(1, len(num_cols), idx + 1)
+                        ax.plot(self.data[col], 'o', markersize=4)
+                        ax.set_title(col)
+                        ax.set_xlabel("Индекс")
+                        ax.set_ylabel(col)
                 else:
-                    QMessageBox.warning(self, "Ошибка", "Боксплоты требуют числовых данных!")
+                    QMessageBox.warning(self, "Ошибка", "Диаграмма требует числовых данных!")
                     return
 
             elif plot_type == "Точечный график":
-                num_cols = [col for col in selected_cols
-                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                ax = self.figure.add_subplot(111)
+                num_cols = [col for col in selected_cols if pd.api.types.is_numeric_dtype(self.data[col])]
                 if len(num_cols) >= 2:
                     x, y = num_cols[0], num_cols[1]
                     self.data.plot.scatter(x=x, y=y, ax=ax)
@@ -938,8 +934,8 @@ class MainWindow(QMainWindow):
                     return
 
             elif plot_type == "Линейный график":
-                num_cols = [col for col in selected_cols
-                            if pd.api.types.is_numeric_dtype(self.data[col])]
+                ax = self.figure.add_subplot(111)
+                num_cols = [col for col in selected_cols if pd.api.types.is_numeric_dtype(self.data[col])]
                 if num_cols:
                     self.data[num_cols].plot(ax=ax)
                     ax.set_title("Линейные графики")
@@ -947,34 +943,32 @@ class MainWindow(QMainWindow):
                     QMessageBox.warning(self, "Ошибка", "Нет числовых данных для построения!")
                     return
 
-
             elif plot_type == "Круговая диаграмма":
-
-                if len(selected_cols) != 1:
-                    QMessageBox.warning(self, "Ошибка", "Выберите ровно один столбец!")
+                n = len(selected_cols)
+                if n == 0:
+                    QMessageBox.warning(self, "Ошибка", "Выберите хотя бы один столбец!")
                     return
-                col = selected_cols[0]
-                if pd.api.types.is_numeric_dtype(self.data[col]):
-                    # Проверяем, является ли столбец бинарным (только 0 и 1)
-                    unique_values = self.data[col].dropna().unique()
-                    if set(unique_values).issubset({0, 1}):
-                        # Обрабатываем бинарные данные отдельно
-                        counts = self.data[col].value_counts()
-                        labels = ['0', '1']  # Явно задаем метки
-                        ax.pie(counts, labels=labels, autopct='%1.1f%%')
-                        ax.set_title(f"Распределение {col} (0 и 1)")
-                    else:
-                        # Для остальных числовых данных - группируем по бинам
-                        counts, bins = np.histogram(self.data[col].dropna(), bins=5)
-                        labels = [f"{bins[i]:.1f}-{bins[i + 1]:.1f}" for i in range(len(counts))]
-                        ax.pie(counts, labels=labels, autopct='%1.1f%%')
-                        ax.set_title(f"Распределение {col}")
-                else:
-                    # Для категориальных данных
-                    counts = self.data[col].value_counts()
-                    ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
-                    ax.set_title(f"Распределение {col}")
 
+                for idx, col in enumerate(selected_cols):
+                    ax = self.figure.add_subplot(1, n, idx + 1)
+                    if pd.api.types.is_numeric_dtype(self.data[col]):
+                        unique_values = self.data[col].dropna().unique()
+                        if set(unique_values).issubset({0, 1}):
+                            counts = self.data[col].value_counts()
+                            labels = ['0', '1']
+                            ax.pie(counts, labels=labels, autopct='%1.1f%%')
+                            ax.set_title(f"{col} (0/1)")
+                        else:
+                            counts, bins = np.histogram(self.data[col].dropna(), bins=5)
+                            labels = [f"{bins[i]:.1f}-{bins[i + 1]:.1f}" for i in range(len(counts))]
+                            ax.pie(counts, labels=labels, autopct='%1.1f%%')
+                            ax.set_title(f"{col}")
+                    else:
+                        counts = self.data[col].value_counts()
+                        ax.pie(counts, labels=counts.index, autopct='%1.1f%%')
+                        ax.set_title(f"{col}")
+
+            self.figure.tight_layout()
             self.canvas.draw()
 
         except Exception as e:
@@ -1369,7 +1363,7 @@ class MainWindow(QMainWindow):
         msg.setWindowTitle("Памятка по признакам")
         msg.setText(legend_text)
         msg.setTextFormat(Qt.RichText)
-        msg.exec_()
+        msg.exec()
 
     def show_about(self):
         """Информация о программе"""
