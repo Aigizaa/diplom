@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
         self.data = None
         self.original_data = None
         self.setWindowTitle("Анализ биомедицинских данных")
-        self.setGeometry(170, 75, 1200, 700)
+        self.setWindowState(Qt.WindowState.WindowMaximized)
         icon_path = resource_path("resources/icon.png")
         self.setWindowIcon(QIcon(icon_path))
         self.current_user = current_user
