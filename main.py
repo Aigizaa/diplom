@@ -63,10 +63,10 @@ class ModelSettingsDialog(QDialog):
             self.max_iter.setValue(1000)
             layout.addRow("Макс. итераций:", self.max_iter)
 
-        elif self.model_type == "Линейная регрессия":
-            self.fit_intercept = QCheckBox()
-            self.fit_intercept.setChecked(True)
-            layout.addRow("Подгонка intercept:", self.fit_intercept)
+        #elif self.model_type == "Линейная регрессия":
+        #    self.fit_intercept = QCheckBox()
+        #    self.fit_intercept.setChecked(True)
+        #    layout.addRow("Подгонка intercept:", self.fit_intercept)
 
         elif self.model_type == "K-ближайших соседей (KNN)":
             self.n_neighbors = QSpinBox()
@@ -286,6 +286,8 @@ class LoginWindow(QDialog):
         """Проверка пароля"""
         password = self.password_edit.text()
         if password == "a":
+            self.accept()
+        elif password == "b":
             self.accept()
         else:
             QMessageBox.warning(self, "Ошибка", "Неверный пароль!")
@@ -557,32 +559,46 @@ class MainWindow(QMainWindow):
 
     # 5.2. Методы работы с данными
     def load_data(self):
-        """Загрузка данных с обновлением интерфейса прогнозирования"""
+        """Загрузка данных из файла (Excel или CSV) с обновлением интерфейса"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Открыть файл Excel", "", "Excel Files (*.xlsx *.xls)"
+            self,
+            "Открыть файл данных",
+            "",
+            "Excel Files (*.xlsx *.xls);;CSV Files (*.csv)"
         )
 
-        if file_path:
-            try:
+        if not file_path:
+            return  # Пользователь отменил выбор файла
+
+        try:
+            if file_path.lower().endswith(('.xlsx', '.xls')):
+                # Чтение Excel файла
                 self.data = pd.read_excel(file_path)
-                self.original_data = self.data.copy()
-                self.file_path_edit.setText(file_path)
+            elif file_path.lower().endswith('.csv'):
+                # Чтение CSV файла с автоматическим определением разделителя
+                self.data = pd.read_csv(file_path, sep=None, engine='python')
+            else:
+                QMessageBox.warning(self, "Ошибка", "Неподдерживаемый формат файла!")
+                return
 
-                # Инициализация таблицы данных
-                self.model = PandasModel(self.data)
-                self.table_view.setModel(self.model)
-                self.table_view.setSortingEnabled(True)
-                self.table_view.resizeColumnsToContents()
+            self.original_data = self.data.copy()
+            self.file_path_edit.setText(file_path)
 
-                # Обновление интерфейса
-                self.update_columns_list()
-                self.show_stats()
-                self.update_prediction_combos()
+            # Инициализация таблицы данных
+            self.model = PandasModel(self.data)
+            self.table_view.setModel(self.model)
+            self.table_view.setSortingEnabled(True)
+            self.table_view.resizeColumnsToContents()
 
-                QMessageBox.information(self, "Успех", "Данные успешно загружены!")
+            # Обновление интерфейса
+            self.update_columns_list()
+            self.show_stats()
+            self.update_prediction_combos()
 
-            except Exception as e:
-                QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
+            QMessageBox.information(self, "Успех", "Данные успешно загружены!")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
 
     def save_data(self):
         """Сохранение данных в файл"""
