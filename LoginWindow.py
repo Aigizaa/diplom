@@ -25,6 +25,8 @@ class LoginWindow(QDialog):
         self.current_user = None
         self.load_users_db()  # Загружаем базу пользователей
         self.init_ui()
+        icon_path = resource_path("resources/icon2.png")
+        self.setWindowIcon(QIcon(icon_path))
 
     def load_users_db(self):
         """Загрузка базы пользователей из Excel файла"""
@@ -53,8 +55,6 @@ class LoginWindow(QDialog):
     def init_ui(self):
         layout = QVBoxLayout()
         layout.setContentsMargins(30, 30, 30, 30)
-
-        # Большая иконка приложения
         icon_label = QLabel()
         try:
             icon_path = resource_path("resources/icon.png")
@@ -65,7 +65,6 @@ class LoginWindow(QDialog):
             print(f"Ошибка загрузки иконки: {str(e)}")
             icon_label.setText("Иконка приложения")
             icon_label.setStyleSheet("font-size: 24px;")
-
         icon_label.setAlignment(Qt.AlignCenter)
 
         # Название приложения
