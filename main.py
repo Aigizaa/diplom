@@ -289,6 +289,8 @@ class LoginWindow(QDialog):
             self.accept()
         elif password == "b":
             self.accept()
+        elif password == "c":
+            self.accept()
         else:
             QMessageBox.warning(self, "Ошибка", "Неверный пароль!")
             self.password_edit.clear()
