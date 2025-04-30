@@ -40,7 +40,7 @@ def resource_path(relative_path):
 # 5. Главное окно приложения
 class MainWindow(QMainWindow):
     # 5.1. Инициализация и настройка UI
-    def __init__(self):
+    def __init__(self, current_user):
         super().__init__()
         self.data = None
         self.original_data = None
@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(170, 75, 1200, 700)
         icon_path = resource_path("resources/icon.png")
         self.setWindowIcon(QIcon(icon_path))
+        self.current_user = current_user
         self.init_ui()
         self.create_menus()
         self.connect_signals()
@@ -56,6 +57,7 @@ class MainWindow(QMainWindow):
         """Инициализация пользовательского интерфейса"""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+        self.setWindowTitle(f"Анализ данных - {self.current_user['ФИО']}")
         main_layout = QHBoxLayout(central_widget)
 
         # Левая панель управления
