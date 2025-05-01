@@ -25,6 +25,7 @@ from PySide6.QtCore import Qt
 from PandasModel import PandasModel
 from FilterDialog import FilterDialog
 from ModelSettingsDialog import ModelSettingsDialog
+import CloudService
 
 # 2. Вспомогательные функции
 def resource_path(relative_path):
@@ -284,6 +285,60 @@ class MainWindow(QMainWindow):
         create_action.setChecked(False)
         create_action.triggered.connect(self.open_create_mode)
         mode_menu.addAction(create_action)
+
+        cloud_menu = menubar.addMenu("Облако")
+
+        # Загрузка данных из облака
+        load_action = QAction("Загрузить из облака", self)
+        load_action.triggered.connect(self.load_from_cloud)
+        cloud_menu.addAction(load_action)
+
+        # Сохранение данных в облако
+        save_action = QAction("Сохранить в облако", self)
+        save_action.triggered.connect(self.save_to_cloud)
+        cloud_menu.addAction(save_action)
+
+    def load_from_cloud(self):
+        """Загружает данные из Google Диска."""
+        cloud_service = CloudService.GoogleDriveService()
+        self.data, error = cloud_service.load_from_cloud()
+
+        if error:
+            QMessageBox.critical(self, "Ошибка", error)
+        else:
+            QMessageBox.information(self, "Успех",
+                                    f"Данные загружены:\n{self.data.head()}")
+            # Инициализация таблицы данных
+            self.model = PandasModel(self.data)
+            self.table_view.setModel(self.model)
+            self.table_view.setSortingEnabled(True)
+            self.table_view.resizeColumnsToContents()
+
+            # Обновление интерфейса
+            self.update_columns_list()
+            self.show_stats()
+            self.update_prediction_combos()
+
+            QMessageBox.information(self, "Успех", "Данные успешно загружены!")
+
+    def save_to_cloud(self):
+        if self.data is None:
+            QMessageBox.warning(self, "Ошибка", "Нет данных для сохранения!")
+            return
+
+        """Сохраняет данные в Google Диск."""
+        if self.data is None:
+            QMessageBox.warning(self, "Ошибка", "Нет данных для сохранения!")
+            return
+
+        cloud_service = CloudService.GoogleDriveService(self.data)
+        result = cloud_service.save_to_cloud()
+
+        if result.startswith("Ошибка"):
+            QMessageBox.critical(self, "Ошибка", result)
+        else:
+            QMessageBox.information(self, "Успех", result)
+
 
     def update_model_combo(self, task_type):
         """Обновляет список моделей в зависимости от выбранного типа задачи"""
