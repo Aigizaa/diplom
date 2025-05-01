@@ -69,10 +69,10 @@ class MainWindow(QMainWindow):
         layout_actions = QVBoxLayout(group_actions)
 
         self.file_path_edit = QLineEdit()
-        self.btn_load = QPushButton("Загрузить Excel")
+        self.btn_load = QPushButton("Загрузить данные")
         self.btn_save = QPushButton("Сохранить данные")
         self.btn_filter = QPushButton("Фильтровать данные")
-        self.btn_reset_filter = QPushButton("Сбросить")
+        self.btn_reset_filter = QPushButton("Сбросить фильтр")
 
         layout_actions.addWidget(QLabel("Путь к файлу:"))
         layout_actions.addWidget(self.file_path_edit)
@@ -138,12 +138,17 @@ class MainWindow(QMainWindow):
         self.canvas = FigureCanvas(self.figure)
         self.plot_type_combo = QComboBox()
         self.plot_type_combo.addItems(["Гистограмма", "Диаграмма рассеяния по осям", "Точечный график", "Линейный график", "Круговая диаграмма"])
+
         self.btn_plot = QPushButton("Построить график")
         self.btn_export = QPushButton("Экспорт графиков")  # Перенесена сюда кнопка экспорта
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(self.btn_plot)
+        btn_layout.addWidget(self.btn_export)
+
         layout_tab_visual = QVBoxLayout(self.tab_visual)
         layout_tab_visual.addWidget(self.plot_type_combo)
-        layout_tab_visual.addWidget(self.btn_plot)
-        layout_tab_visual.addWidget(self.btn_export)
+        layout_tab_visual.addLayout(btn_layout)
         layout_tab_visual.addWidget(self.canvas)
 
         # Вкладка "Анализ"
