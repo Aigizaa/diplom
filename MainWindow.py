@@ -173,11 +173,22 @@ class MainWindow(QMainWindow):
         self.model_combo.addItems(
             ["Случайный лес", "Логистическая регрессия", "Линейная регрессия", "K-ближайших соседей (KNN)",
              "Дерево решений"])
-        model_layout.addWidget(self.model_combo, 0, 1)
+        model_layout.addWidget(self.model_combo, 0, 2)
+
+        self.task_type_combo = QComboBox()
+        self.task_type_combo.addItems(
+            ["Классификация", "Регрессия"]
+        )
+
+        # Связываем сигнал изменения выбора с обновлением списка моделей
+        self.task_type_combo.currentTextChanged.connect(self.update_model_combo)
+        # Инициализируем model_combo в зависимости от текущего выбора
+        self.update_model_combo(self.task_type_combo.currentText())
 
         self.btn_model_settings = QPushButton("Настроить модель")
         self.btn_model_settings.clicked.connect(self.show_model_settings)
-        model_layout.addWidget(self.btn_model_settings, 0, 2)
+        model_layout.addWidget(self.btn_model_settings, 0, 3)
+        model_layout.addWidget(self.task_type_combo, 0, 1)
 
         model_layout.addWidget(QLabel("Целевой признак:"), 1, 0)
         self.target_combo = QComboBox()
@@ -273,6 +284,28 @@ class MainWindow(QMainWindow):
         create_action.setChecked(False)
         create_action.triggered.connect(self.open_create_mode)
         mode_menu.addAction(create_action)
+
+    def update_model_combo(self, task_type):
+        """Обновляет список моделей в зависимости от выбранного типа задачи"""
+        self.model_combo.clear()  # Очищаем комбобокс
+
+        if task_type == "Классификация":
+            models = [
+                "Случайный лес",
+                "Логистическая регрессия",
+                "K-ближайших соседей (KNN)",
+                "Дерево решений"
+            ]
+        elif task_type == "Регрессия":
+            models = [
+                "Случайный лес",
+                "Линейная регрессия",
+                "K-ближайших соседей (KNN)",
+                "Дерево решений"
+            ]
+        else:
+            models = []
+        self.model_combo.addItems(models)
 
     def open_create_mode(self):
         from CreateBaseWindow import CreateBaseWindow
@@ -783,10 +816,10 @@ class MainWindow(QMainWindow):
             )
 
             # Определяем, регрессия или классификация
-            is_classification = not pd.api.types.is_numeric_dtype(y)
+            task_type = self.task_type_combo.currentText()
 
             # Если это классификация, преобразуем метки
-            if is_classification:
+            if task_type == "Классификация":
                 le = LabelEncoder()
                 y_train = le.fit_transform(y_train)
                 y_test = le.transform(y_test)
@@ -797,7 +830,7 @@ class MainWindow(QMainWindow):
 
             # Создаем модель в зависимости от выбранного типа
             if model_type == "Случайный лес":
-                if is_classification:
+                if task_type == "Классификация":
                     self.model = RandomForestClassifier(
                         n_estimators=settings.get('n_estimators', 100),
                         max_depth=settings.get('max_depth', None),
@@ -813,9 +846,6 @@ class MainWindow(QMainWindow):
                     )
 
             elif model_type == "Логистическая регрессия":
-                if not is_classification:
-                    QMessageBox.warning(self, "Ошибка", "Логистическая регрессия предназначена для классификации!")
-                    return
                 self.model = LogisticRegression(
                     C=settings.get('C', 1.0),
                     max_iter=settings.get('max_iter', 1000),
@@ -823,15 +853,12 @@ class MainWindow(QMainWindow):
                 )
 
             elif model_type == "Линейная регрессия":
-                if is_classification:
-                    QMessageBox.warning(self, "Ошибка", "Линейная регрессия предназначена для регрессии!")
-                    return
                 self.model = LinearRegression(
                     fit_intercept=settings.get('fit_intercept', True)
                 )
 
             elif model_type == "K-ближайших соседей (KNN)":
-                if is_classification:
+                if task_type == "Классификация":
                     self.model = KNeighborsClassifier(
                         n_neighbors=settings.get('n_neighbors', 5),
                         weights=settings.get('weights', 'uniform')
@@ -843,7 +870,7 @@ class MainWindow(QMainWindow):
                     )
 
             elif model_type == "Дерево решений":
-                if is_classification:
+                if task_type == "Классификация":
                     self.model = DecisionTreeClassifier(
                         max_depth=settings.get('max_depth', None),
                         min_samples_split=settings.get('min_samples_split', 2),
@@ -864,12 +891,11 @@ class MainWindow(QMainWindow):
 
             # Оценка модели
             y_pred = self.model.predict(X_test)
-            mae = mean_absolute_error(y_test, y_pred)
 
             # Формируем информацию о модели
             info = [
                 f"Модель: {model_type}",
-                f"Тип: {'Классификация' if is_classification else 'Регрессия'}",
+                f"Тип: {task_type}",
                 f"Целевой признак: {target}",
                 f"Использовано признаков: {len(selected_features)}",
                 "\nПараметры модели:",
@@ -877,7 +903,7 @@ class MainWindow(QMainWindow):
                 "\nМетрики качества:"
             ]
 
-            if is_classification:
+            if task_type == "Классификация":
                 accuracy = accuracy_score(y_test, y_pred)
                 info.append(f"Точность: {accuracy:.4f}")
             else:
@@ -901,15 +927,13 @@ class MainWindow(QMainWindow):
             elif hasattr(self.model, 'coef_'):
                 coefs = pd.DataFrame({
                     'Признак': selected_features,
-                    'Коэффициент': self.model.coef_[0] if is_classification else self.model.coef_
+                    'Коэффициент': self.model.coef_[0] if task_type == "Классификация" else self.model.coef_
                 }).sort_values('Коэффициент', key=abs, ascending=False)
                 info.append("\nКоэффициенты модели:")
                 info.append(coefs.to_string(index=False))
 
             self.model_info.setPlainText("\n".join(info))
             QMessageBox.information(self, "Успех", "Модель успешно обучена!")
-
-
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка обучения модели:\n{str(e)}")

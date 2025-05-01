@@ -90,10 +90,10 @@ class ModelSettingsDialog(QDialog):
                 'C': self.C.value(),
                 'max_iter': self.max_iter.value()
             })
-        elif self.model_type == "Линейная регрессия":
-            settings.update({
-                'fit_intercept': self.fit_intercept.isChecked()
-            })
+        #elif self.model_type == "Линейная регрессия":
+        #    settings.update({
+        #        'fit_intercept': self.fit_intercept.isChecked()
+        #    })
         elif self.model_type == "K-ближайших соседей (KNN)":
             settings.update({
                 'n_neighbors': self.n_neighbors.value(),
