@@ -22,6 +22,10 @@ class CreateBaseWindow(QMainWindow):
         self.setWindowTitle(f"Режим создания - {self.current_user['ФИО']}")
         self.setFixedSize(1100, 700)
 
+        from MainWindow import resource_path
+        icon_path = resource_path("resources/icon.png")
+        self.setWindowIcon(QIcon(icon_path))
+
         # Главный контейнер
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
