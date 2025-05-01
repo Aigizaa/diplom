@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QFileDialog, QMessageBox, QDialog, QFormLayout,
                                QLineEdit, QComboBox, QInputDialog)
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QIcon
 import pandas as pd
 import os
 
@@ -14,6 +15,7 @@ class CreateBaseWindow(QMainWindow):
         self.data = pd.DataFrame()
         self.current_file = None
         self.init_ui()
+        self.create_menus()
         self.setup_connections()
 
     def init_ui(self):
@@ -54,6 +56,50 @@ class CreateBaseWindow(QMainWindow):
         main_layout.addWidget(self.table, stretch=1)
 
         self.setCentralWidget(main_widget)
+
+    def create_menus(self):
+        menubar = self.menuBar()
+        # Меню "Справка"
+        help_menu = menubar.addMenu("Справка")
+
+        # Пункт "Памятка по признакам"
+        #legend_action = QAction("Памятка по признакам", self)
+        #legend_action.triggered.connect(self.show_legend)
+        #help_menu.addAction(legend_action)
+
+        # Пункт "О программе"
+        about_action = QAction("О программе", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
+
+        # меню "Режим"
+        mode_menu = menubar.addMenu("Режим")
+
+        # Пункт Анализ
+        analyze_action = QAction("Анализ", self)
+        analyze_action.setCheckable(True)
+        analyze_action.setChecked(False)
+        analyze_action.triggered.connect(self.open_analyze_mode)
+        mode_menu.addAction(analyze_action)
+
+        # Пункт Создание
+        from ModeSelectionWindow import ModeSelectionWindow
+        create_action = QAction("Создание и пополнение", self)
+        create_action.setCheckable(True)
+        create_action.setChecked(True)
+        mode_menu.addAction(create_action)
+
+    def show_about(self):
+        """Информация о программе"""
+        QMessageBox.about(self, "О программе",
+                          "Анализатор биомедицинских данных v1.0\n"
+                          "Для работы с клиническими показателями пациентов")
+
+    def open_analyze_mode(self):
+        from MainWindow import MainWindow
+        self.analyze_window = MainWindow(self.current_user)
+        self.analyze_window.show()
+        self.close()
 
     def setup_connections(self):
         """Настройка обработчиков событий"""

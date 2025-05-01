@@ -244,14 +244,36 @@ class MainWindow(QMainWindow):
         help_menu = menubar.addMenu("Справка")
 
         # Пункт "Памятка по признакам"
-        legend_action = QAction("Памятка по признакам", self)
-        legend_action.triggered.connect(self.show_legend)
-        help_menu.addAction(legend_action)
+        #legend_action = QAction("Памятка по признакам", self)
+        #legend_action.triggered.connect(self.show_legend)
+        #help_menu.addAction(legend_action)
 
         # Пункт "О программе"
         about_action = QAction("О программе", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+
+        # меню "Режим"
+        mode_menu = menubar.addMenu("Режим")
+
+        # Пункт Анализ
+        analyze_action = QAction("Анализ", self)
+        analyze_action.setCheckable(True)
+        analyze_action.setChecked(True)
+        mode_menu.addAction(analyze_action)
+
+        # Пункт Создание
+        create_action = QAction("Создание и пополнение", self)
+        create_action.setCheckable(True)
+        create_action.setChecked(False)
+        create_action.triggered.connect(self.open_create_mode)
+        mode_menu.addAction(create_action)
+
+    def open_create_mode(self):
+        from CreateBaseWindow import CreateBaseWindow
+        self.create_window = CreateBaseWindow(self.current_user)
+        self.create_window.show()
+        self.close()
 
     def connect_signals(self):
         """Подключение сигналов к слотам"""

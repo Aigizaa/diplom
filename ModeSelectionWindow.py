@@ -76,7 +76,7 @@ class ModeSelectionWindow(QWidget):
         main_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
         # Кнопка "Создание"
-        btn_create = QPushButton("Создание")
+        btn_create = QPushButton("Создание и пополнение")
         btn_create.setStyleSheet("""
             QPushButton {
                 background-color: #3498db;
