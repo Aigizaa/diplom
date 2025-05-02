@@ -300,7 +300,7 @@ class MainWindow(QMainWindow):
 
     def load_from_cloud(self):
         """Загружает данные из Google Диска."""
-        cloud_service = CloudService.GoogleDriveService()
+        cloud_service = CloudService.GoogleDriveService(parent_ui=self)
         self.data, error = cloud_service.load_from_cloud()
 
         if error:
@@ -319,7 +319,7 @@ class MainWindow(QMainWindow):
             self.show_stats()
             self.update_prediction_combos()
 
-            QMessageBox.information(self, "Успех", "Данные успешно загружены!")
+            #QMessageBox.information(self, "Успех", "Данные успешно загружены!")
 
     def save_to_cloud(self):
         if self.data is None:
@@ -331,7 +331,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Ошибка", "Нет данных для сохранения!")
             return
 
-        cloud_service = CloudService.GoogleDriveService(self.data)
+        cloud_service = CloudService.GoogleDriveService(self.data, parent_ui=self)
         result = cloud_service.save_to_cloud()
 
         if result.startswith("Ошибка"):
