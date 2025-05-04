@@ -1,15 +1,25 @@
+import os
 import sys
 from PySide6.QtWidgets import QApplication, QDialog
-from LoginWindow import LoginWindow
-from ModeSelectionWindow import ModeSelectionWindow
+from Login.LoginView import LoginView
+from Login.LoginModel import LoginModel
+from Login.LoginPresenter import LoginPresenter
+from ModeSelection import ModeSelectionView, ModeSelectionPresenter
 
-if __name__ == "__main__":
+
+db_users_file_name = "databases/doctors_db.xlsx"
+
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    login = LoginWindow()
 
-    if login.exec() == QDialog.Accepted:
-        # После успешной авторизации показываем окно выбора режима
-        mode_window = ModeSelectionWindow(login.current_user)
+    login_view = LoginView()
+    login_model = LoginModel(db_users_file_name)
+    login_presenter = LoginPresenter(login_view, login_model)
+    login_view.show()
+
+    if login_view.exec() == QDialog.DialogCode.Accepted:
+        mode_window = ModeSelectionView(login_presenter.current_user)
+        mode_presenter = ModeSelectionPresenter(mode_window, login_presenter.current_user)
         mode_window.show()
     else:
         # Если авторизация не пройдена - все равно разрешаем доступ
@@ -19,7 +29,10 @@ if __name__ == "__main__":
             'Логин': 'debug_user',
             'access_level': 'full'
         }
-        mode_window = ModeSelectionWindow(test_user)
+        mode_window = ModeSelectionView(test_user)
+        mode_presenter = ModeSelectionPresenter(mode_window, test_user)
         mode_window.show()
 
     sys.exit(app.exec())
+
+

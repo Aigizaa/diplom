@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, QAbstractTableModel
 
+
 # 3. Модели данных
 class PandasModel(QAbstractTableModel):
     """Модель для отображения DataFrame в QTableView"""

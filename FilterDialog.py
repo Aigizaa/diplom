@@ -1,4 +1,6 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QComboBox, QLineEdit, QPushButton
+
+
 class FilterDialog(QDialog):
     def __init__(self, columns, parent=None):
         super().__init__(parent)
