@@ -121,9 +121,9 @@ class ModeSelectionView(QWidget):
 
 
 class ModeSelectionPresenter:
-    def __init__(self, view: ModeSelectionView, current_user):
+    def __init__(self, view: ModeSelectionView):
         self.view = view
-        self.current_user = current_user
+        self.current_user = view.current_user
         self.view.btn_create.clicked.connect(self.open_creation_mode)
         self.view.btn_analyze.clicked.connect(self.open_analysis_mode)
 

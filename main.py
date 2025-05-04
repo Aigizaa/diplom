@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     if login_view.exec() == QDialog.DialogCode.Accepted:
         mode_window = ModeSelectionView(login_presenter.current_user)
-        mode_presenter = ModeSelectionPresenter(mode_window, login_presenter.current_user)
+        mode_presenter = ModeSelectionPresenter(mode_window)
         mode_window.show()
     else:
         # Если авторизация не пройдена - все равно разрешаем доступ
@@ -30,7 +30,7 @@ if __name__ == '__main__':
             'access_level': 'full'
         }
         mode_window = ModeSelectionView(test_user)
-        mode_presenter = ModeSelectionPresenter(mode_window, test_user)
+        mode_presenter = ModeSelectionPresenter(mode_window)
         mode_window.show()
 
     sys.exit(app.exec())
