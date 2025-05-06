@@ -130,8 +130,10 @@ class ModeSelectionPresenter:
     def open_creation_mode(self):
         from EditingMode.EditingModeView import EditingModeView
         from EditingMode.EditingModePresenter import EditingModePresenter
+        from EditingMode.OsteoartritModel import OsteoartritModel
         self.creation_window = EditingModeView(self.current_user)
-        self.creation_presenter = EditingModePresenter(self.creation_window)
+        self.model = OsteoartritModel()
+        self.creation_presenter = EditingModePresenter(self.creation_window, self.model)
         self.creation_window.show()
         self.view.close()
 
