@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from PySide6.QtGui import QFont
+
 from Services.StatisticsService import StatisticsService
 from Services.ForcastingService import ForcastingService
 from Services.VisualizationService import VisualizationService
@@ -10,17 +12,52 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QComboBox, QLabel, QPushButton, QListWidgetItem,
     QCheckBox, QFileDialog, QMessageBox, QDialog,
-    QDoubleSpinBox, QSizePolicy
+    QDoubleSpinBox, QSizePolicy, QListWidget, QHBoxLayout
 )
 import seaborn as sns
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QSpinBox, QDialogButtonBox
 from PandasModel import PandasModel
 from FilterDialog import FilterDialog
 from ModelSettingsDialog import ModelSettingsData, ModelSettingsView, ModelSettingsPresenter
 
+
+class ClusterDialog(QDialog):
+    def __init__(self, features, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Настройки кластерного анализа")
+        self.layout = QVBoxLayout(self)
+
+        # Выбор признаков
+        self.features_list = QListWidget()
+        self.features_list.setSelectionMode(QListWidget.MultiSelection)
+        self.features_list.addItems(features)
+        self.layout.addWidget(QLabel("Выберите признаки для кластеризации:"))
+        self.layout.addWidget(self.features_list)
+
+        # Количество кластеров
+        self.cluster_spin = QSpinBox()
+        self.cluster_spin.setRange(2, 10)
+        self.cluster_spin.setValue(3)
+        cluster_layout = QHBoxLayout()
+        cluster_layout.addWidget(QLabel("Количество кластеров:"))
+        cluster_layout.addWidget(self.cluster_spin)
+        self.layout.addLayout(cluster_layout)
+
+        # Кнопки
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        self.layout.addWidget(button_box)
+
+    def get_selected_features(self):
+        return [item.text() for item in self.features_list.selectedItems()]
+
+    def get_cluster_count(self):
+        return self.cluster_spin.value()
 
 class AnalysisModePresenter:
     def __init__(self, view: AnalysisModeView):
@@ -48,8 +85,6 @@ class AnalysisModePresenter:
         self.view.btn_export.clicked.connect(self.export_plots)
         self.view.btn_plot.clicked.connect(self.plot_data)
 
-        self.view.btn_analyze.clicked.connect(self.run_analysis)
-
         self.view.btn_train.clicked.connect(self.train_model)
         self.view.btn_predict.clicked.connect(self.make_prediction)
         self.view.target_combo.currentTextChanged.connect(self.on_target_changed)
@@ -59,6 +94,7 @@ class AnalysisModePresenter:
         self.view.about_action.triggered.connect(self.show_about)
         self.view.create_action.triggered.connect(self.open_editing_mode)
         self.view.legend_action.triggered.connect(self.show_legend)
+        self.setup_analysis_connections()
 
     def load_local_data(self):
         """Загрузка данных из файла (Excel или CSV) с обновлением интерфейса"""
@@ -303,8 +339,16 @@ class AnalysisModePresenter:
             except Exception as e:
                 QMessageBox.critical(self.view, "Ошибка", f"Ошибка экспорта:\n{str(e)}")
 
-    def run_analysis(self):
-        """Анализ данных с выводом информации о самых значимых корреляциях"""
+    def setup_analysis_connections(self):
+        """Подключение сигналов для новых видов анализа"""
+        self.view.btn_correlation.clicked.connect(self.run_correlation_analysis)
+        self.view.btn_distribution.clicked.connect(self.run_distribution_analysis)
+        self.view.btn_outliers.clicked.connect(self.run_outliers_analysis)
+        self.view.btn_missing.clicked.connect(self.run_missing_data_analysis)
+        self.view.btn_cluster.clicked.connect(self.run_cluster_analysis)
+
+    def run_correlation_analysis(self):
+        """Анализ корреляций (существующий метод)"""
         if self.data is None:
             QMessageBox.warning(self.view, "Ошибка", "Сначала загрузите данные!")
             return
@@ -315,9 +359,130 @@ class AnalysisModePresenter:
             # Показываем тепловую карту
             corr_matrix = analysis.get_correlation_matrix()
             self.show_correlation_heatmap(corr_matrix)
-
         except Exception as e:
             QMessageBox.critical(self.view, "Ошибка", f"Ошибка анализа данных:\n{str(e)}")
+
+    def run_distribution_analysis(self):
+        """Анализ распределений данных"""
+        if self.data is None:
+            QMessageBox.warning(self.view, "Ошибка", "Сначала загрузите данные!")
+            return
+
+        try:
+            analysis = AnalysisService(self.data)
+            report = analysis.get_distribution_analysis_report()
+
+            font = QFont("Courier New", 10)
+            self.view.analysis_text.setFont(font)
+            self.view.analysis_text.setPlainText("\n".join(report))
+
+            QMessageBox.information(self.view, "Успех", "Анализ распределений выполнен!")
+        except Exception as e:
+            QMessageBox.critical(self.view, "Ошибка", f"Ошибка анализа распределений:\n{str(e)}")
+
+    def run_outliers_analysis(self):
+        """Анализ выбросов в данных"""
+        if self.data is None:
+            QMessageBox.warning(self.view, "Ошибка", "Сначала загрузите данные!")
+            return
+
+        try:
+            analysis = AnalysisService(self.data)
+            report, outliers_count = analysis.get_outliers_analysis_report()
+
+            self.view.analysis_text.setPlainText("\n".join(report))
+            font = QFont("Courier New", 10)
+            self.view.analysis_text.setFont(font)
+            self.view.analysis_text.setPlainText("\n".join(report))
+            QMessageBox.information(self.view, "Успех", "Анализ выбросов выполнен!")
+        except Exception as e:
+            QMessageBox.critical(self.view, "Ошибка", f"Ошибка анализа выбросов:\n{str(e)}")
+
+    def run_missing_data_analysis(self):
+        """Анализ пропущенных значений"""
+        if self.data is None:
+            QMessageBox.warning(self.view, "Ошибка", "Сначала загрузите данные!")
+            return
+
+        try:
+            analysis = AnalysisService(self.data)
+            report = analysis.get_missing_data_analysis_report()
+
+            # Визуализация пропусков
+            self.view.figure.clear()
+            ax = self.view.figure.add_subplot(111)
+
+            missing = self.data.isnull().sum()
+            missing = missing[missing > 0]
+            if not missing.empty:
+                missing.plot(kind='bar', ax=ax)
+                ax.set_title("Количество пропущенных значений")
+                ax.set_ylabel("Количество пропусков")
+                self.view.canvas.draw()
+
+            self.view.analysis_text.setPlainText("\n".join(report))
+            QMessageBox.information(self.view, "Успех", "Анализ пропусков выполнен!")
+        except Exception as e:
+            QMessageBox.critical(self.view, "Ошибка", f"Ошибка анализа пропусков:\n{str(e)}")
+
+    def run_cluster_analysis(self):
+        """Кластерный анализ данных"""
+        if self.data is None:
+            QMessageBox.warning(self.view, "Ошибка", "Сначала загрузите данные!")
+            return
+
+        try:
+            numeric_cols = self.data.select_dtypes(include=np.number).columns.tolist()
+            if len(numeric_cols) < 2:
+                QMessageBox.warning(self.view, "Ошибка", "Недостаточно числовых признаков для кластеризации!")
+                return
+
+            # Диалог выбора признаков для кластеризации
+            dialog = ClusterDialog(numeric_cols, self.view)
+            if dialog.exec():
+                features = dialog.get_selected_features()
+                n_clusters = dialog.get_cluster_count()
+
+                if len(features) < 2:
+                    QMessageBox.warning(self.view, "Ошибка", "Выберите хотя бы 2 признака!")
+                    return
+
+                analysis = AnalysisService(self.data)
+                report, cluster_labels = analysis.get_cluster_analysis_report(features, n_clusters)
+
+                # Визуализация кластеров
+                self.view.figure.clear()
+                ax = self.view.figure.add_subplot(111)
+
+                if len(features) == 2:
+                    sns.scatterplot(
+                        x=self.data[features[0]],
+                        y=self.data[features[1]],
+                        hue=cluster_labels,
+                        palette='viridis',
+                        ax=ax
+                    )
+                    ax.set_title("2D визуализация кластеров")
+                else:
+                    # Для более чем 2 признаков используем PCA
+                    from sklearn.decomposition import PCA
+                    pca = PCA(n_components=2)
+                    reduced = pca.fit_transform(self.data[features])
+                    reduced_df = pd.DataFrame(reduced, columns=['PC1', 'PC2'])
+                    sns.scatterplot(
+                        x=reduced_df['PC1'],
+                        y=reduced_df['PC2'],
+                        hue=cluster_labels,
+                        palette='viridis',
+                        ax=ax
+                    )
+                    ax.set_title("PCA визуализация кластеров (2 главных компоненты)")
+
+                self.view.canvas.draw()
+                self.view.analysis_text.setPlainText("\n".join(report))
+                QMessageBox.information(self.view, "Успех", "Кластерный анализ выполнен!")
+        except Exception as e:
+            QMessageBox.critical(self.view, "Ошибка", f"Ошибка кластерного анализа:\n{str(e)}")
 
     def show_correlation_heatmap(self, corr_matrix):
         """Отображает тепловую карту корреляционной матрицы с полными подписями"""

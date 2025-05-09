@@ -49,7 +49,11 @@ class AnalysisModeView(QMainWindow):
         # Вкладка "Анализ"
         self.tab_analysis = QWidget()
         self.analysis_text = QTextEdit()
-        self.btn_analyze = QPushButton("Выполнить анализ")
+        self.btn_correlation = QPushButton("Корреляционный анализ")
+        self.btn_distribution = QPushButton("Анализ распределений")
+        self.btn_outliers = QPushButton("Анализ выбросов")
+        self.btn_missing = QPushButton("Анализ пропусков")
+        self.btn_cluster = QPushButton("Кластерный анализ")
 
         # Вкладка "Прогнозирование"
         self.tab_prediction = QWidget()
@@ -146,7 +150,17 @@ class AnalysisModeView(QMainWindow):
         self.analysis_text.setReadOnly(True)
         self.analysis_text.setStyleSheet("font-size: 11pt;")
         layout_tab_analysis = QVBoxLayout(self.tab_analysis)
-        layout_tab_analysis.addWidget(self.btn_analyze)
+
+
+        # Группа кнопок анализа
+        analysis_buttons = QHBoxLayout()
+        analysis_buttons.addWidget(self.btn_correlation)
+        analysis_buttons.addWidget(self.btn_distribution)
+        analysis_buttons.addWidget(self.btn_outliers)
+        analysis_buttons.addWidget(self.btn_missing)
+        analysis_buttons.addWidget(self.btn_cluster)
+
+        layout_tab_analysis.addLayout(analysis_buttons)
         layout_tab_analysis.addWidget(self.analysis_text)
 
         # Вкладка "Прогнозирование"

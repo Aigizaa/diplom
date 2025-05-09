@@ -25,8 +25,9 @@ class LoginPresenter:
                 ]
 
             if not user.empty:
-                # Сохраняем информацию о пользователе
+                # Сохраняем информацию о пользователе, включая ID
                 self.current_user = {
+                    'ID': user.iloc[0]['ID'],
                     'ФИО': user.iloc[0]['ФИО'],
                     'Логин': login
                 }
