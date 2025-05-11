@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import numpy as np
 from PySide6.QtGui import QFont
@@ -106,14 +108,24 @@ class AnalysisModePresenter:
             return  # Пользователь отменил выбор файла
 
         try:
+            # Проверка размера файла перед чтением
+            if os.path.getsize(file_path) == 0:
+                raise ValueError("Файл пустой")
+
             if file_path.lower().endswith(('.xlsx', '.xls')):
                 # Чтение Excel файла
                 self.data = pd.read_excel(file_path)
+                # Дополнительная проверка для Excel
+                if self.data.empty:
+                    raise ValueError("Файл Excel не содержит данных")
             elif file_path.lower().endswith('.csv'):
                 # Чтение CSV файла с автоматическим определением разделителя
                 self.data = pd.read_csv(file_path, sep=None, engine='python')
+                # Проверка для CSV (могли прочитать только заголовки)
+                if self.data.empty or len(self.data.columns) == 0:
+                    raise ValueError("CSV файл не содержит данных")
             else:
-                pass
+                raise ValueError("Неподдерживаемый формат файла")
 
             self.original_data = self.data.copy()
             self.view.file_path_edit.setText(file_path)
@@ -131,6 +143,11 @@ class AnalysisModePresenter:
 
             QMessageBox.information(self.view, "Успех", "Данные успешно загружены!")
 
+        except ValueError as e:
+            if "пустой" in str(e).lower():
+                QMessageBox.critical(self.view, "Ошибка", "Ошибка: Файл пустой")
+            else:
+                QMessageBox.critical(self.view, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
         except Exception as e:
             QMessageBox.critical(self.view, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
 
@@ -202,8 +219,11 @@ class AnalysisModePresenter:
                 operator = filter_params['operator']
                 value = filter_params['value']
 
+                # Сохраняем исходные данные для восстановления при пустом результате
+                filtered_data = self.data.copy()
+
                 if operator == "содержит":
-                    self.data = self.data[self.data[column].astype(str).str.contains(value, case=False)]
+                    filtered_data = filtered_data[filtered_data[column].astype(str).str.contains(value, case=False)]
                 else:
                     # Пробуем преобразовать значение в число
                     try:
@@ -212,21 +232,29 @@ class AnalysisModePresenter:
                         pass  # Оставляем как строку, если не число
 
                     if operator == ">":
-                        self.data = self.data[self.data[column] > value]
+                        filtered_data = filtered_data[filtered_data[column] > value]
                     elif operator == ">=":
-                        self.data = self.data[self.data[column] >= value]
+                        filtered_data = filtered_data[filtered_data[column] >= value]
                     elif operator == "==":
-                        self.data = self.data[self.data[column] == value]
+                        filtered_data = filtered_data[filtered_data[column] == value]
                     elif operator == "<=":
-                        self.data = self.data[self.data[column] <= value]
+                        filtered_data = filtered_data[filtered_data[column] <= value]
                     elif operator == "<":
-                        self.data = self.data[self.data[column] < value]
+                        filtered_data = filtered_data[filtered_data[column] < value]
                     elif operator == "!=":
-                        self.data = self.data[self.data[column] != value]
+                        filtered_data = filtered_data[filtered_data[column] != value]
 
+                # Проверка на пустой результат
+                if filtered_data.empty:
+                    QMessageBox.warning(self.view, "Ошибка", "Не найдено данных, удовлетворяющих условию")
+                    return
+
+                # Применяем фильтр только если есть результаты
+                self.data = filtered_data
                 self.update_table_view()
-                self.show_stats()
-                QMessageBox.information(self.view, "Успех", "Фильтр успешно применен!")
+                QMessageBox.information(self.view, "Успех",
+                                        f"Найдено строк: {len(self.data)}\nФильтр успешно применен!")
+
             except Exception as e:
                 QMessageBox.critical(self.view, "Ошибка", f"Ошибка применения фильтра:\n{str(e)}")
 

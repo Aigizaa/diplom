@@ -12,7 +12,7 @@ class StatisticsService:
         # Фильтруем только числовые столбцы
         numeric_data = self.data.select_dtypes(include=np.number)
         if numeric_data.empty:
-            QMessageBox.critical(self.view, "Ошибка", "Нет числовых данных для анализа!")
+            QMessageBox.critical(self.view, "Ошибка", "Нет числовых данных для статистики!")
 
         # Словарь для переименования строк
         rename_dict = {
