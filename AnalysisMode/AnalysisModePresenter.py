@@ -480,7 +480,14 @@ class AnalysisModePresenter:
 
                 # Визуализация кластеров
                 self.view.figure.clear()
+
+                # размер графика (ширина x высота в дюймах)
+                self.view.figure.set_size_inches(8, 6)
+
                 ax = self.view.figure.add_subplot(111)
+
+                # отступы вокруг графика
+                self.view.figure.tight_layout(pad=2.0)
 
                 if len(features) == 2:
                     sns.scatterplot(
@@ -488,9 +495,11 @@ class AnalysisModePresenter:
                         y=self.data[features[1]],
                         hue=cluster_labels,
                         palette='viridis',
-                        ax=ax
+                        ax=ax,
+                        s=40,  # Размер точек
+                        alpha=0.7  # Прозрачность
                     )
-                    ax.set_title("2D визуализация кластеров")
+                    ax.set_title("2D визуализация кластеров", fontsize=10)
                 else:
                     # Для более чем 2 признаков используем PCA
                     from sklearn.decomposition import PCA
@@ -502,9 +511,19 @@ class AnalysisModePresenter:
                         y=reduced_df['PC2'],
                         hue=cluster_labels,
                         palette='viridis',
-                        ax=ax
+                        ax=ax,
+                        s=40,
+                        alpha=0.7
                     )
-                    ax.set_title("PCA визуализация кластеров (2 главных компоненты)")
+                    ax.set_title("PCA визуализация кластеров (2 главных компоненты)", fontsize=10)
+
+                # Уменьшаем размер шрифта подписей
+                ax.tick_params(axis='both', which='major', labelsize=8)
+                ax.xaxis.label.set_size(8)
+                ax.yaxis.label.set_size(8)
+
+                # Компактное расположение легенды
+                ax.legend(fontsize=8, bbox_to_anchor=(1.05, 1), loc='upper left')
 
                 self.view.canvas.draw()
                 self.view.analysis_text.setPlainText("\n".join(report))
