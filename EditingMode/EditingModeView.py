@@ -82,14 +82,14 @@ class EditingModeView(QMainWindow):
         right_layout = QVBoxLayout(right_panel)
 
         # центральная таблица
-        self.table.setColumnCount(33)
+        self.table.setColumnCount(32)
         self.table.setHorizontalHeaderLabels([
             "Болезнь", "Возраст", "ДСТ", "Сумма", "ИМТ", "ГМС", "ГМС.2",
             "ИМТ<25", "кожа легк", "кожа тяж", "Келлоид", "Стрии", "Геморрагии",
             "Грыжи", "Птозы", "Хруст ВЧС", "Парадонтоз", "Долихостен",
             "ГМС легк", "ГМС выраж", "Кифоз/лордоз", "Деф гр клет", "Плоскост",
             "Вальг стопа", "Хруст суст", "ПМК", "Варик лег", "Варик тяж",
-            "Миопия лег", "Миопия тяж", "Жел пуз.", "ГЭРБ", "Гипотенз", "ID врача"
+            "Миопия лег", "Миопия тяж", "Жел пуз.", "ГЭРБ", "Гипотенз"
         ])
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         right_layout.addWidget(self.table)
@@ -186,7 +186,7 @@ class EditingModeView(QMainWindow):
 
         dst_layout = QVBoxLayout()
         dst_layout.setSpacing(5)
-        dst_layout.addWidget(QLabel("ДСТ (0 или 1):"))
+        dst_layout.addWidget(QLabel("Дисплазия соединительной ткани (0 или 1):"))
         self.dst_edit = QLineEdit()
         self.dst_edit.setMaximumWidth(200)
         dst_layout.addWidget(self.dst_edit)
@@ -198,10 +198,10 @@ class EditingModeView(QMainWindow):
         page3 = QWidget()
         layout3 = QVBoxLayout(page3)
         self.gms_image = QLabel()
-        self.gms_image.setPixmap(QPixmap("Pictures/ГМС.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.gms_image.setPixmap(QPixmap("Pictures/ГМС.png").scaled(900, 700, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout3.addWidget(self.gms_image)
-        layout3.addWidget(QLabel("ГМС (1-9):"))
+        layout3.addWidget(QLabel("Гипермобильность суставов (1-9):"))
         self.gms_edit = QLineEdit()
         layout3.addWidget(self.gms_edit)
         self.stacked_widget.addWidget(page3)
@@ -210,13 +210,13 @@ class EditingModeView(QMainWindow):
         page4 = QWidget()
         layout4 = QVBoxLayout(page4)
         self.skin_image = QLabel()
-        self.skin_image.setPixmap(QPixmap("Pictures/Кожа.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.skin_image.setPixmap(QPixmap("Pictures/Кожа.png").scaled(900, 700, Qt.AspectRatioMode.KeepAspectRatio,
                                                                       Qt.TransformationMode.SmoothTransformation))
         layout4.addWidget(self.skin_image)
-        layout4.addWidget(QLabel("Кожа легк (0 или 1):"))
+        layout4.addWidget(QLabel("Гиперрастяжимость кожи легкой степени (0 или 1):"))
         self.skin_light_edit = QLineEdit()
         layout4.addWidget(self.skin_light_edit)
-        layout4.addWidget(QLabel("Кожа тяж (0 или 1):"))
+        layout4.addWidget(QLabel("Гиперрастяжимость кожи тяжелой степени (0 или 1):"))
         self.skin_heavy_edit = QLineEdit()
         layout4.addWidget(self.skin_heavy_edit)
         self.stacked_widget.addWidget(page4)
@@ -225,10 +225,10 @@ class EditingModeView(QMainWindow):
         page5 = QWidget()
         layout5 = QVBoxLayout(page5)
         self.keloid_image = QLabel()
-        self.keloid_image.setPixmap(QPixmap("Pictures/Келоидные рубцы.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.keloid_image.setPixmap(QPixmap("Pictures/Келоидные рубцы.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                             Qt.TransformationMode.SmoothTransformation))
         layout5.addWidget(self.keloid_image)
-        layout5.addWidget(QLabel("Келлоид (0 или 1):"))
+        layout5.addWidget(QLabel("Келоидные рубцы (0 или 1):"))
         self.keloid_edit = QLineEdit()
         layout5.addWidget(self.keloid_edit)
         self.stacked_widget.addWidget(page5)
@@ -237,7 +237,7 @@ class EditingModeView(QMainWindow):
         page6 = QWidget()
         layout6 = QVBoxLayout(page6)
         self.striae_image = QLabel()
-        self.striae_image.setPixmap(QPixmap("Pictures/Стрии.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.striae_image.setPixmap(QPixmap("Pictures/Стрии.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout6.addWidget(self.striae_image)
         layout6.addWidget(QLabel("Стрии (0 или 1):"))
@@ -249,7 +249,7 @@ class EditingModeView(QMainWindow):
         page7 = QWidget()
         layout7 = QVBoxLayout(page7)
         self.hemorrhages_image = QLabel()
-        self.hemorrhages_image.setPixmap(QPixmap("Pictures/Геморрагии.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.hemorrhages_image.setPixmap(QPixmap("Pictures/Геморрагии.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout7.addWidget(self.hemorrhages_image)
         layout7.addWidget(QLabel("Геморрагии (0 или 1):"))
@@ -261,7 +261,7 @@ class EditingModeView(QMainWindow):
         page8 = QWidget()
         layout8 = QVBoxLayout(page8)
         self.hernias_image = QLabel()
-        self.hernias_image.setPixmap(QPixmap("Pictures/Грыжи.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.hernias_image.setPixmap(QPixmap("Pictures/Грыжи.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout8.addWidget(self.hernias_image)
         layout8.addWidget(QLabel("Грыжи (0 или 1):"))
@@ -273,7 +273,7 @@ class EditingModeView(QMainWindow):
         page9 = QWidget()
         layout9 = QVBoxLayout(page9)
         self.ptosis_image = QLabel()
-        self.ptosis_image.setPixmap(QPixmap("Pictures/Птозы.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.ptosis_image.setPixmap(QPixmap("Pictures/Птозы.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout9.addWidget(self.ptosis_image)
         layout9.addWidget(QLabel("Птозы (0 или 1):"))
@@ -285,7 +285,7 @@ class EditingModeView(QMainWindow):
         page10 = QWidget()
         layout10 = QVBoxLayout(page10)
         self.tmj_image = QLabel()
-        self.tmj_image.setPixmap(QPixmap("Pictures/Хруст ВЧС.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.tmj_image.setPixmap(QPixmap("Pictures/Хруст ВЧС.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout10.addWidget(self.tmj_image)
         layout10.addWidget(QLabel("Хруст ВЧС (0 или 1):"))
@@ -297,7 +297,7 @@ class EditingModeView(QMainWindow):
         page11 = QWidget()
         layout11 = QVBoxLayout(page11)
         self.periodontosis_image = QLabel()
-        self.periodontosis_image.setPixmap(QPixmap("Pictures/Парадонтоз.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.periodontosis_image.setPixmap(QPixmap("Pictures/Парадонтоз.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout11.addWidget(self.periodontosis_image)
         layout11.addWidget(QLabel("Парадонтоз (0 или 1):"))
@@ -309,10 +309,10 @@ class EditingModeView(QMainWindow):
         page12 = QWidget()
         layout12 = QVBoxLayout(page12)
         self.dolicho_image = QLabel()
-        self.dolicho_image.setPixmap(QPixmap("Pictures/Долихостеномелия.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.dolicho_image.setPixmap(QPixmap("Pictures/Долихостеномелия.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout12.addWidget(self.dolicho_image)
-        layout12.addWidget(QLabel("Долихостен (0 или 1):"))
+        layout12.addWidget(QLabel("Долихостеномелия (0 или 1):"))
         self.dolicho_edit = QLineEdit()
         layout12.addWidget(self.dolicho_edit)
         self.stacked_widget.addWidget(page12)
@@ -321,10 +321,10 @@ class EditingModeView(QMainWindow):
         page13 = QWidget()
         layout13 = QVBoxLayout(page13)
         self.kyphosis_image = QLabel()
-        self.kyphosis_image.setPixmap(QPixmap("Pictures/Кифоз_лордоз.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.kyphosis_image.setPixmap(QPixmap("Pictures/Кифоз_лордоз.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout13.addWidget(self.kyphosis_image)
-        layout13.addWidget(QLabel("Кифоз/лордоз (0 или 1):"))
+        layout13.addWidget(QLabel("Гиперкифоз/гиперлордоз (0 или 1):"))
         self.kyphosis_edit = QLineEdit()
         layout13.addWidget(self.kyphosis_edit)
         self.stacked_widget.addWidget(page13)
@@ -333,10 +333,10 @@ class EditingModeView(QMainWindow):
         page14 = QWidget()
         layout14 = QVBoxLayout(page14)
         self.chest_image = QLabel()
-        self.chest_image.setPixmap(QPixmap("Pictures/Деф гр клет.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.chest_image.setPixmap(QPixmap("Pictures/Деф гр клет.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout14.addWidget(self.chest_image)
-        layout14.addWidget(QLabel("Деф гр клет (0 или 1):"))
+        layout14.addWidget(QLabel("Деформация грудной клетки (0 или 1):"))
         self.chest_edit = QLineEdit()
         layout14.addWidget(self.chest_edit)
         self.stacked_widget.addWidget(page14)
@@ -345,10 +345,10 @@ class EditingModeView(QMainWindow):
         page15 = QWidget()
         layout15 = QVBoxLayout(page15)
         self.flatfeet_image = QLabel()
-        self.flatfeet_image.setPixmap(QPixmap("Pictures/Плоскостопие.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.flatfeet_image.setPixmap(QPixmap("Pictures/Плоскостопие.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout15.addWidget(self.flatfeet_image)
-        layout15.addWidget(QLabel("Плоскост (0 или 1):"))
+        layout15.addWidget(QLabel("Плоскостопие (0 или 1):"))
         self.flatfeet_edit = QLineEdit()
         layout15.addWidget(self.flatfeet_edit)
         self.stacked_widget.addWidget(page15)
@@ -357,10 +357,10 @@ class EditingModeView(QMainWindow):
         page16 = QWidget()
         layout16 = QVBoxLayout(page16)
         self.valgus_image = QLabel()
-        self.valgus_image.setPixmap(QPixmap("Pictures/Вальгус.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.valgus_image.setPixmap(QPixmap("Pictures/Вальгус.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout16.addWidget(self.valgus_image)
-        layout16.addWidget(QLabel("Вальг стопа (0 или 1):"))
+        layout16.addWidget(QLabel("Вальгус стоп (0 или 1):"))
         self.valgus_edit = QLineEdit()
         layout16.addWidget(self.valgus_edit)
         self.stacked_widget.addWidget(page16)
@@ -369,10 +369,10 @@ class EditingModeView(QMainWindow):
         page17 = QWidget()
         layout17 = QVBoxLayout(page17)
         self.joint_image = QLabel()
-        self.joint_image.setPixmap(QPixmap("Pictures/Хруст_в_суставах.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.joint_image.setPixmap(QPixmap("Pictures/Хруст_в_суставах.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout17.addWidget(self.joint_image)
-        layout17.addWidget(QLabel("Хруст суст (0 или 1):"))
+        layout17.addWidget(QLabel("Хруст суставов (0 или 1):"))
         self.joint_edit = QLineEdit()
         layout17.addWidget(self.joint_edit)
         self.stacked_widget.addWidget(page17)
@@ -381,10 +381,10 @@ class EditingModeView(QMainWindow):
         page18 = QWidget()
         layout18 = QVBoxLayout(page18)
         self.mvp_image = QLabel()
-        self.mvp_image.setPixmap(QPixmap("Pictures/ПМК.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.mvp_image.setPixmap(QPixmap("Pictures/ПМК.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout18.addWidget(self.mvp_image)
-        layout18.addWidget(QLabel("ПМК (0 или 1):"))
+        layout18.addWidget(QLabel("Пролапс митрального клапана (0 или 1):"))
         self.mvp_edit = QLineEdit()
         layout18.addWidget(self.mvp_edit)
         self.stacked_widget.addWidget(page18)
@@ -393,13 +393,13 @@ class EditingModeView(QMainWindow):
         page19 = QWidget()
         layout19 = QVBoxLayout(page19)
         self.varicose_image = QLabel()
-        self.varicose_image.setPixmap(QPixmap("Pictures/Варикоз.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.varicose_image.setPixmap(QPixmap("Pictures/Варикоз.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout19.addWidget(self.varicose_image)
-        layout19.addWidget(QLabel("Варик лег (0 или 1):"))
+        layout19.addWidget(QLabel("Варикоз легкой степени (0 или 1):"))
         self.varicose_light_edit = QLineEdit()
         layout19.addWidget(self.varicose_light_edit)
-        layout19.addWidget(QLabel("Варик тяж (0 или 1):"))
+        layout19.addWidget(QLabel("Варикоз тяжелой степени (0 или 1):"))
         self.varicose_heavy_edit = QLineEdit()
         layout19.addWidget(self.varicose_heavy_edit)
         self.stacked_widget.addWidget(page19)
@@ -408,13 +408,13 @@ class EditingModeView(QMainWindow):
         page20 = QWidget()
         layout20 = QVBoxLayout(page20)
         self.myopia_image = QLabel()
-        self.myopia_image.setPixmap(QPixmap("Pictures/Миопия.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.myopia_image.setPixmap(QPixmap("Pictures/Миопия.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout20.addWidget(self.myopia_image)
-        layout20.addWidget(QLabel("Миопия лег (0 или 1):"))
+        layout20.addWidget(QLabel("Миопия легкой степени (0 или 1):"))
         self.myopia_light_edit = QLineEdit()
         layout20.addWidget(self.myopia_light_edit)
-        layout20.addWidget(QLabel("Миопия тяж (0 или 1):"))
+        layout20.addWidget(QLabel("Миопия тяжелой степени (0 или 1):"))
         self.myopia_heavy_edit = QLineEdit()
         layout20.addWidget(self.myopia_heavy_edit)
         self.stacked_widget.addWidget(page20)
@@ -423,10 +423,10 @@ class EditingModeView(QMainWindow):
         page21 = QWidget()
         layout21 = QVBoxLayout(page21)
         self.gallbladder_image = QLabel()
-        self.gallbladder_image.setPixmap(QPixmap("Pictures/Желчный пузырь.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.gallbladder_image.setPixmap(QPixmap("Pictures/Желчный пузырь.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout21.addWidget(self.gallbladder_image)
-        layout21.addWidget(QLabel("Жел пуз. (0 или 1):"))
+        layout21.addWidget(QLabel("Деформация желчного пузыря (0 или 1):"))
         self.gallbladder_edit = QLineEdit()
         layout21.addWidget(self.gallbladder_edit)
         self.stacked_widget.addWidget(page21)
@@ -435,10 +435,10 @@ class EditingModeView(QMainWindow):
         page22 = QWidget()
         layout22 = QVBoxLayout(page22)
         self.gerd_image = QLabel()
-        self.gerd_image.setPixmap(QPixmap("Pictures/ГЭРБ.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.gerd_image.setPixmap(QPixmap("Pictures/ГЭРБ.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout22.addWidget(self.gerd_image)
-        layout22.addWidget(QLabel("ГЭРБ (0 или 1):"))
+        layout22.addWidget(QLabel("ГЭРБ (Гастроэзофагеальная рефлюксная болезнь) (0 или 1):"))
         self.gerd_edit = QLineEdit()
         layout22.addWidget(self.gerd_edit)
         self.stacked_widget.addWidget(page22)
@@ -447,10 +447,10 @@ class EditingModeView(QMainWindow):
         page23 = QWidget()
         layout23 = QVBoxLayout(page23)
         self.hypotension_image = QLabel()
-        self.hypotension_image.setPixmap(QPixmap("Pictures/Гипотензия.png").scaled(1000, 1000, Qt.AspectRatioMode.KeepAspectRatio,
+        self.hypotension_image.setPixmap(QPixmap("Pictures/Гипотензия.png").scaled(900, 900, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout23.addWidget(self.hypotension_image)
-        layout23.addWidget(QLabel("Гипотенз (0 или 1):"))
+        layout23.addWidget(QLabel("Гипотензия (0 или 1):"))
         self.hypotension_edit = QLineEdit()
         layout23.addWidget(self.hypotension_edit)
         self.stacked_widget.addWidget(page23)
@@ -473,7 +473,7 @@ class EditingModeView(QMainWindow):
         if self.get_current_page_index() == 0 or self.get_current_page_index() == 1:
             self.dialog.setFixedSize(300, 200)
         else:
-            self.dialog.setFixedSize(900, 700)
+            self.dialog.setFixedSize(950, 700)
 
     def get_input_values(self):
         age = self.age_edit.text()

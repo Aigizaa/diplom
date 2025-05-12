@@ -225,9 +225,6 @@ class EditingModePresenter:
     def save_record(self):
         values = self.view.get_input_values()
 
-        # Получаем ID врача из current_user
-        doctor_id = self.view.current_user.get('ID', 0)
-
         # Calculate derived values
         try:
             age = int(values["age"])
@@ -318,8 +315,7 @@ class EditingModePresenter:
                 int(values["myopia_heavy"]),  # Миопия тяж
                 int(values["gallbladder"]),  # Жел пуз.
                 int(values["gerd"]),  # ГЭРБ
-                int(values["hypotension"]),  # Гипотенз
-                doctor_id
+                int(values["hypotension"])  # Гипотенз
             ]
 
             # Add or update record
