@@ -332,7 +332,7 @@ class EditingModePresenter:
 
             self.view.update_table(self.model.df)
             self.view.dialog.close()
-            QMessageBox.information(self.view, "Успех!", "Данные успешно добавлены!")
+            QMessageBox.information(self.view, "Успех!", "Данные успешно сохранены!")
 
         except ValueError as e:
             self.view.show_error(f"Ошибка в данных: {str(e)}")
