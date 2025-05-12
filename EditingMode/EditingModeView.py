@@ -82,14 +82,14 @@ class EditingModeView(QMainWindow):
         right_layout = QVBoxLayout(right_panel)
 
         # центральная таблица
-        self.table.setColumnCount(32)
+        self.table.setColumnCount(34)
         self.table.setHorizontalHeaderLabels([
-            "Болезнь", "Возраст", "ДСТ", "Сумма", "ИМТ", "ГМС", "ГМС.2",
+            "Болезнь", "Возраст", "ДСТ", "Сумма", "ИМТ", "ГМС", "ГМС.1",
             "ИМТ<25", "кожа легк", "кожа тяж", "Келлоид", "Стрии", "Геморрагии",
             "Грыжи", "Птозы", "Хруст ВЧС", "Парадонтоз", "Долихостен",
             "ГМС легк", "ГМС выраж", "Кифоз/лордоз", "Деф гр клет", "Плоскост",
             "Вальг стопа", "Хруст суст", "ПМК", "Варик лег", "Варик тяж",
-            "Миопия лег", "Миопия тяж", "Жел пуз.", "ГЭРБ", "Гипотенз"
+            "Миопия лег", "Миопия тяж", "Жел пуз.", "ГЭРБ", "Гипотенз", "ID врача"
         ])
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         right_layout.addWidget(self.table)
