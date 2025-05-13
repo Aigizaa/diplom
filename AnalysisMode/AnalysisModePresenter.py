@@ -112,20 +112,60 @@ class AnalysisModePresenter:
             if os.path.getsize(file_path) == 0:
                 raise ValueError("Файл пустой")
 
+            # Чтение данных с предварительной проверкой количества строк
             if file_path.lower().endswith(('.xlsx', '.xls')):
-                # Чтение Excel файла
-                self.data = pd.read_excel(file_path)
-                # Дополнительная проверка для Excel
-                if self.data.empty:
-                    raise ValueError("Файл Excel не содержит данных")
+                # Для Excel сначала считываем количество строк без загрузки всего файла
+                temp_df = pd.read_excel(file_path, nrows=1)
+                total_rows = pd.read_excel(file_path, usecols=[0]).shape[0]
+
+                if total_rows > 50000:
+                    reply = QMessageBox.question(
+                        self.view,
+                        "Большой объем данных",
+                        f"Файл содержит {total_rows} строк (максимум 50 000).\n"
+                        "Загрузить первые 50 000 строк?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.data = pd.read_excel(file_path, nrows=50000)
+                    else:
+                        return
+                else:
+                    self.data = pd.read_excel(file_path)
+
             elif file_path.lower().endswith('.csv'):
-                # Чтение CSV файла с автоматическим определением разделителя
-                self.data = pd.read_csv(file_path, sep=None, engine='python')
-                # Проверка для CSV (могли прочитать только заголовки)
-                if self.data.empty or len(self.data.columns) == 0:
-                    raise ValueError("CSV файл не содержит данных")
+                # Для CSV используем chunksize для оценки размера
+                with open(file_path, 'r') as f:
+                    total_rows = sum(1 for _ in f) - 1  # минус заголовок
+
+                if total_rows > 50000:
+                    reply = QMessageBox.question(
+                        self.view,
+                        "Большой объем данных",
+                        f"Файл содержит {total_rows} строк (максимум 50 000).\n"
+                        "Загрузить первые 50 000 строк?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.data = pd.read_csv(file_path, nrows=50000)
+                    else:
+                        return
+                else:
+                    self.data = pd.read_csv(file_path)
             else:
                 raise ValueError("Неподдерживаемый формат файла")
+
+            # Дополнительная проверка данных
+            if self.data.empty:
+                raise ValueError("Файл не содержит данных")
+
+            if len(self.data) > 50000:
+                self.data = self.data.head(50000)
+                QMessageBox.warning(
+                    self.view,
+                    "Превышен лимит",
+                    "Загружены только первые 50 000 строк"
+                )
 
             self.original_data = self.data.copy()
             self.view.file_path_edit.setText(file_path)
@@ -141,7 +181,11 @@ class AnalysisModePresenter:
             self.show_stats()
             self.update_prediction_combos()
 
-            QMessageBox.information(self.view, "Успех", "Данные успешно загружены!")
+            QMessageBox.information(
+                self.view,
+                "Успех",
+                f"Данные успешно загружены!\nЗагружено строк: {len(self.data)}"
+            )
 
         except ValueError as e:
             if "пустой" in str(e).lower():
