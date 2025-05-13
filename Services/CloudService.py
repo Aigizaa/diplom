@@ -7,6 +7,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from PySide6.QtWidgets import (QInputDialog, QMessageBox, QComboBox, QDialog, QVBoxLayout, QPushButton, QLabel)
+import socket
+import requests
+from urllib.request import urlopen
+from urllib.error import URLError
 
 
 # Настройки Google Drive API
@@ -21,9 +25,30 @@ class GoogleDriveService:
         self.parent_ui = parent_ui  # Ссылка на главное окно для вызова диалогов
         self.service = self._authenticate()
 
-    @staticmethod
-    def _authenticate():
+    def _check_internet_connection(self, timeout=3):
+        """Проверяет наличие интернет-соединения."""
+        try:
+            # Попытка подключения к DNS Google
+            socket.create_connection(("8.8.8.8", 53), timeout=timeout)
+            return True
+        except OSError:
+            pass
+        try:
+            # Альтернативная проверка через HTTP-запрос
+            urlopen("https://www.google.com", timeout=timeout)
+            return True
+        except URLError:
+            pass
+
+        return False
+        
+    def _authenticate(self):
         """Авторизация в Google Drive API с автоматическим обновлением токена."""
+        # Сначала проверяем подключение к Интернету
+        if not self._check_internet_connection():
+            QMessageBox.critical(self.parent_ui, "Ошибка", "Нет подключения к сети Интернет!")
+            return None
+
         creds = None
         if os.path.exists(TOKEN_FILE):
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
@@ -35,9 +60,15 @@ class GoogleDriveService:
                     creds.refresh(Request())
                 except Exception as e:
                     print(f"Ошибка при обновлении токена: {e}")
+                    if not self._check_internet_connection():
+                        QMessageBox.critical(self.parent_ui, "Ошибка", "Нет подключения к сети Интернет!")
+                        return None
                     flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
                     creds = flow.run_local_server(port=0)
             else:
+                if not self._check_internet_connection():
+                    QMessageBox.critical(self.parent_ui, "Ошибка", "Нет подключения к сети Интернет!")
+                    return None
                 flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
                 creds = flow.run_local_server(port=0)
 
@@ -63,16 +94,27 @@ class GoogleDriveService:
 
     def get_available_files(self):
         """Возвращает список всех Excel-файлов на Google Диске."""
-        results = self.service.files().list(
-            q="mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
-            fields="files(id, name)").execute()
-        return results.get('files', [])
+        if not self._check_internet_connection():
+            raise Exception("Нет подключения")
+
+        try:
+            self._check_and_refresh_token()
+            if not self.service:
+                return []
+
+            results = self.service.files().list(
+                q="mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
+                fields="files(id, name)").execute()
+            return results.get('files', [])
+        except Exception as e:
+            QMessageBox.critical(self.parent_ui, "Ошибка", f"Ошибка при получении файлов: {e}")
+            return []
 
     def load_from_cloud(self):
         """Загружает выбранный файл с Google Диска."""
         files = self.get_available_files()
         if not files:
-            return None, "На Google Диске нет файлов."
+            return None, None, "На Google Диске нет файлов."
 
         # Диалог выбора файла
         dialog = QDialog(self.parent_ui)
@@ -112,6 +154,9 @@ class GoogleDriveService:
 
     def save_to_cloud(self, current_user: str):
         """Сохраняет DataFrame в Excel после ввода названия."""
+        if not self._check_internet_connection():
+            return "Нет подключения!"
+            
         if self.data is None:
             return "Нет данных для сохранения."
 
