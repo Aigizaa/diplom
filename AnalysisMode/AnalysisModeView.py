@@ -1,4 +1,6 @@
 import os
+import sys
+
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtGui import QAction, QIcon
@@ -9,6 +11,11 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+def resource_path(relative_path):
+    """ Получает абсолютный путь к ресурсу """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class AnalysisModeView(QMainWindow):
     def __init__(self, current_user):
@@ -81,7 +88,7 @@ class AnalysisModeView(QMainWindow):
     def init_ui(self):
         self.setWindowTitle(f"Режим анализа данных - {self.current_user['ФИО']}")
         self.setWindowState(Qt.WindowState.WindowMaximized)
-        icon_path = os.path.abspath("resources/icon.png")
+        icon_path = resource_path("resources/icon.png")
         self.setWindowIcon(QIcon(icon_path))
 
         central_widget = QWidget()

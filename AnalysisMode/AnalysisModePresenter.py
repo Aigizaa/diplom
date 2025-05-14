@@ -109,14 +109,27 @@ class AnalysisModePresenter:
 
         try:
             # Проверка размера файла перед чтением
-            if os.path.getsize(file_path) == 0:
-                raise ValueError("Файл пустой")
+            file_size = os.path.getsize(file_path)
+            if file_size == 0:
+                QMessageBox.critical(self.view, "Ошибка",
+                                     "Выбранный файл пустой (0 байт).\n"
+                                     "Пожалуйста, выберите файл с данными.")
+                return
 
             # Чтение данных с предварительной проверкой количества строк
             if file_path.lower().endswith(('.xlsx', '.xls')):
                 # Для Excel сначала считываем количество строк без загрузки всего файла
                 temp_df = pd.read_excel(file_path, nrows=1)
+                if temp_df.empty:
+                    QMessageBox.critical(self.view, "Ошибка",
+                                         "Файл Excel не содержит данных или имеет неправильный формат.")
+                    return
+
                 total_rows = pd.read_excel(file_path, usecols=[0]).shape[0]
+                if total_rows == 0:
+                    QMessageBox.critical(self.view, "Ошибка",
+                                         "Файл Excel не содержит строк с данными.")
+                    return
 
                 if total_rows > 50000:
                     reply = QMessageBox.question(
@@ -134,9 +147,22 @@ class AnalysisModePresenter:
                     self.data = pd.read_excel(file_path)
 
             elif file_path.lower().endswith('.csv'):
-                # Для CSV используем chunksize для оценки размера
-                with open(file_path, 'r') as f:
+                # Для CSV сначала проверяем, не пустой ли файл
+                with open(file_path, 'r', encoding='utf-8-sig') as f:
+                    first_line = f.readline()
+                    if not first_line:
+                        QMessageBox.critical(self.view, "Ошибка",
+                                             "CSV файл не содержит данных.")
+                        return
+
+                    # Сбрасываем позицию чтения и считаем строки
+                    f.seek(0)
                     total_rows = sum(1 for _ in f) - 1  # минус заголовок
+
+                if total_rows == 0:
+                    QMessageBox.critical(self.view, "Ошибка",
+                                         "CSV файл не содержит строк с данными (только заголовок).")
+                    return
 
                 if total_rows > 50000:
                     reply = QMessageBox.question(
@@ -147,17 +173,30 @@ class AnalysisModePresenter:
                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                     )
                     if reply == QMessageBox.StandardButton.Yes:
-                        self.data = pd.read_csv(file_path, nrows=50000)
+                        self.data = pd.read_csv(file_path, nrows=50000, encoding='utf-8-sig')
                     else:
                         return
                 else:
-                    self.data = pd.read_csv(file_path)
+                    # Читаем CSV с автоматическим определением разделителя
+                    self.data = pd.read_csv(file_path, encoding='utf-8-sig')
+
+                    # Если возникли проблемы с разделителем
+                    if len(self.data.columns) == 1:
+                        for sep in [';', '\t', '|']:
+                            try:
+                                self.data = pd.read_csv(file_path, sep=sep, encoding='utf-8-sig')
+                                if len(self.data.columns) > 1:
+                                    break
+                            except:
+                                continue
             else:
                 raise ValueError("Неподдерживаемый формат файла")
 
             # Дополнительная проверка данных
             if self.data.empty:
-                raise ValueError("Файл не содержит данных")
+                QMessageBox.critical(self.view, "Ошибка",
+                                     "Файл не содержит данных после обработки.")
+                return
 
             if len(self.data) > 50000:
                 self.data = self.data.head(50000)
@@ -187,13 +226,28 @@ class AnalysisModePresenter:
                 f"Данные успешно загружены!\nЗагружено строк: {len(self.data)}"
             )
 
-        except ValueError as e:
-            if "пустой" in str(e).lower():
-                QMessageBox.critical(self.view, "Ошибка", "Ошибка: Файл пустой")
-            else:
-                QMessageBox.critical(self.view, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
+        except UnicodeDecodeError:
+            # Если utf-8-sig не сработал, пробуем другие кодировки
+            try:
+                self.data = pd.read_csv(file_path, encoding='cp1251')
+                if self.data.empty:
+                    QMessageBox.critical(self.view, "Ошибка",
+                                         "Файл не содержит данных (после чтения в cp1251).")
+                    return
+
+                model = PandasModel(self.data)
+                self.view.table_view.setModel(model)
+                self.update_columns_list()
+                QMessageBox.information(self.view, "Успех",
+                                        "Данные загружены (использована кодировка cp1251)")
+            except Exception as e:
+                QMessageBox.critical(self.view, "Ошибка",
+                                     f"Ошибка загрузки файла:\n{str(e)}\n"
+                                     "Попробуйте сохранить файл в UTF-8 или Excel формате.")
         except Exception as e:
-            QMessageBox.critical(self.view, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
+            QMessageBox.critical(self.view, "Ошибка",
+                                 f"Ошибка загрузки файла:\n{str(e)}\n"
+                                 "Проверьте формат и содержимое файла.")
 
     def save_local_data(self):
         """Сохранение данных в файл"""

@@ -1,9 +1,16 @@
 import os
+import sys
+
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit,
                                QPushButton, QFormLayout)
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 
+def resource_path(relative_path):
+    """ Получает абсолютный путь к ресурсу """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class LoginView(QDialog):
     def __init__(self):
@@ -19,13 +26,13 @@ class LoginView(QDialog):
 
     def init_ui(self):
         self.setWindowTitle("Авторизация")
-        icon_path = os.path.abspath("resources/icon2.png")
+        icon_path = resource_path("resources/icon2.png")
         self.setWindowIcon(QIcon(icon_path))
         layout = QVBoxLayout()
         layout.setContentsMargins(30, 30, 30, 30)
         icon_label = QLabel()
         try:
-            icon_path = os.path.abspath("resources/icon.png")
+            icon_path = resource_path("resources/icon.png")
             icon_pixmap = QPixmap(icon_path).scaled(
                 200, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             icon_label.setPixmap(icon_pixmap)

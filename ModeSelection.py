@@ -1,9 +1,16 @@
 import os
+import sys
+
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel,
                                QPushButton, QSpacerItem, QSizePolicy)
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 
+def resource_path(relative_path):
+    """ Получает абсолютный путь к ресурсу """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class ModeSelectionView(QWidget):
     def __init__(self, current_user):
@@ -14,7 +21,7 @@ class ModeSelectionView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        icon_path = os.path.abspath("resources/icon.png")
+        icon_path = resource_path("resources/icon.png")
         self.setWindowIcon(QIcon(icon_path))
         self.setWindowTitle("Выбор режима работы")
         self.setFixedSize(750, 550)
@@ -27,7 +34,7 @@ class ModeSelectionView(QWidget):
         # Иконка приложения
         icon_label = QLabel()
         try:
-            icon_path = os.path.abspath("resources/icon.png")
+            icon_path = resource_path("resources/icon.png")
             icon_pixmap = QPixmap(icon_path).scaled(
                 170, 170, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             icon_label.setPixmap(icon_pixmap)
