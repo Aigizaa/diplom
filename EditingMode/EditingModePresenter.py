@@ -16,6 +16,9 @@ class EditingModePresenter:
         self.current_record_index = -1  # -1 means new record
         self.current_page = 0
         self.connect_signals()
+        # Initialize view
+        self.view.update_table(self.model.df)
+        self.update_columns_list()
 
     def connect_signals(self):
         self.view.btn_load_local.clicked.connect(self.load_local_data)
@@ -34,15 +37,12 @@ class EditingModePresenter:
         self.view.next_button.clicked.connect(self.next_page)
         self.view.back_button.clicked.connect(self.prev_page)
 
-        # Initialize view
-        self.view.update_table(self.model.df)
-
     def add_row(self):
         self.current_record_index = -1
         self.current_page = 0
         self.view.clear_inputs()
         self.view.set_current_page_index(0)
-        self.view.dialog.setWindowTitle("Добавить запись")
+        self.view.dialog.setWindowTitle("Добавление записи")
         self.view.dialog.show()
         self.center_dialog()
 
@@ -54,50 +54,40 @@ class EditingModePresenter:
 
         self.current_record_index = row
         self.current_page = 0
-
+        self.view.dialog.setWindowTitle("Редактирование записи")
         # Get data from model
         record = self.model.df.iloc[row]
 
         # Convert to input format
         values = {
-            "age": record[1],
-            "height": "",  # Not stored in model, will be recalculated
-            "weight": "",  # Not stored in model, will be recalculated
-            "dst": record[2],
-            "gms": record[5],
-            "skin_light": record[8],
-            "skin_heavy": record[9],
-            "keloid": record[10],
-            "striae": record[11],
-            "hemorrhages": record[12],
-            "hernias": record[13],
-            "ptosis": record[14],
-            "tmj": record[15],
-            "periodontosis": record[16],
-            "dolicho": record[17],
-            "kyphosis": record[20],
-            "chest": record[21],
-            "flatfeet": record[22],
-            "valgus": record[23],
-            "joint": record[24],
-            "mvp": record[25],
-            "varicose_light": record[26],
-            "varicose_heavy": record[27],
-            "myopia_light": record[28],
-            "myopia_heavy": record[29],
-            "gallbladder": record[30],
-            "gerd": record[31],
-            "hypotension": record[32]
+            "age": record.iloc[3],
+            "height": record.iloc[4],
+            "weight": record.iloc[5],
+            "gms": record.iloc[8],
+            "skin_light": record.iloc[12],
+            "skin_heavy": record.iloc[13],
+            "keloid": record.iloc[14],
+            "striae": record.iloc[15],
+            "hemorrhages": record.iloc[16],
+            "hernias": record.iloc[17],
+            "ptosis": record.iloc[18],
+            "tmj": record.iloc[19],
+            "periodontosis": record.iloc[20],
+            "dolicho": record.iloc[21],
+            "kyphosis": record.iloc[22],
+            "chest": record.iloc[23],
+            "flatfeet": record.iloc[24],
+            "valgus": record.iloc[25],
+            "joint": record.iloc[26],
+            "mvp": record.iloc[27],
+            "varicose_light": record.iloc[28],
+            "varicose_heavy": record.iloc[29],
+            "myopia_light": record.iloc[30],
+            "myopia_heavy": record.iloc[21],
+            "gallbladder": record.iloc[32],
+            "gerd": record.iloc[33],
+            "hypotension": record.iloc[34]
         }
-
-        # Calculate height and weight from BMI
-        bmi = float(record[4])
-        if bmi > 0:
-            # Assume standard height to calculate weight
-            height = 170  # cm
-            weight = bmi * (height / 100) ** 2
-            values["height"] = str(height)
-            values["weight"] = str(round(weight, 1))
 
         self.view.set_input_values(values)
         self.view.set_current_page_index(0)
@@ -118,7 +108,7 @@ class EditingModePresenter:
         )
 
         if reply == QMessageBox.Yes:
-            self.model.delete_record(row)
+            self.model.delete_row(row)
             self.view.update_table(self.model.df)
 
     def center_dialog(self):
@@ -134,7 +124,7 @@ class EditingModePresenter:
         self.view.dialog.move(dialog_rect.topLeft())
 
     def next_page(self):
-        if self.current_page == 22:  # Last page
+        if self.current_page == 21:  # Last page
             self.save_record()
             return
 
@@ -167,16 +157,7 @@ class EditingModePresenter:
                     "Введите корректные числовые значения (возраст - целое число, рост и вес - положительные числа)")
                 return False
 
-        elif self.current_page == 1:  # DST
-            try:
-                dst = int(values["dst"])
-                if dst not in (0, 1):
-                    raise ValueError
-            except ValueError:
-                self.view.show_error("ДСТ должно быть 0 или 1")
-                return False
-
-        elif self.current_page == 2:  # GMS
+        elif self.current_page == 1:  # GMS
             try:
                 gms = int(values["gms"])
                 if not 1 <= gms <= 9:
@@ -186,28 +167,28 @@ class EditingModePresenter:
                 return False
 
         # Other pages with 0/1 values
-        elif 3 <= self.current_page <= 22:
+        elif 2 <= self.current_page <= 21:
             field_names = {
-                3: ["skin_light", "skin_heavy"],
-                4: ["keloid"],
-                5: ["striae"],
-                6: ["hemorrhages"],
-                7: ["hernias"],
-                8: ["ptosis"],
-                9: ["tmj"],
-                10: ["periodontosis"],
-                11: ["dolicho"],
-                12: ["kyphosis"],
-                13: ["chest"],
-                14: ["flatfeet"],
-                15: ["valgus"],
-                16: ["joint"],
-                17: ["mvp"],
-                18: ["varicose_light", "varicose_heavy"],
-                19: ["myopia_light", "myopia_heavy"],
-                20: ["gallbladder"],
-                21: ["gerd"],
-                22: ["hypotension"]
+                2: ["skin_light", "skin_heavy"],
+                3: ["keloid"],
+                4: ["striae"],
+                5: ["hemorrhages"],
+                6: ["hernias"],
+                7: ["ptosis"],
+                8: ["tmj"],
+                9: ["periodontosis"],
+                10: ["dolicho"],
+                11: ["kyphosis"],
+                12: ["chest"],
+                13: ["flatfeet"],
+                14: ["valgus"],
+                15: ["joint"],
+                16: ["mvp"],
+                17: ["varicose_light", "varicose_heavy"],
+                18: ["myopia_light", "myopia_heavy"],
+                19: ["gallbladder"],
+                20: ["gerd"],
+                21: ["hypotension"]
             }
 
             fields = field_names[self.current_page]
@@ -217,7 +198,7 @@ class EditingModePresenter:
                     if val not in (0, 1):
                         raise ValueError
                 except ValueError:
-                    self.view.show_error(f"Поле {field} должно быть 0 или 1")
+                    self.view.show_error(f"Вы не выбрали значение {field}")
                     return False
 
         return True
@@ -228,17 +209,15 @@ class EditingModePresenter:
         # Получаем ID врача из current_user
         doctor_id = self.view.current_user.get('ID', 0)
 
-
         # Calculate derived values
         try:
             age = int(values["age"])
             height = float(values["height"])
             weight = float(values["weight"])
-            dst = int(values["dst"])
             gms = int(values["gms"])
 
             # Calculate BMI
-            bmi = weight / ((height / 100) ** 2)
+            bmi = round(weight / ((height / 100) ** 2))
             bmi_under_25 = 1 if bmi < 25 else 0
 
             # Calculate GMS.2
@@ -253,8 +232,38 @@ class EditingModePresenter:
             gms_light = 1 if gms2 == 2 else 0
             gms_expressed = 1 if gms2 == 3 else 0
 
-            # Sum of binary features (excluding disease, age, dst, sum, bmi, gms, gms2)
+            feature_scores = {
+                "bmi_under_25": 1,
+                "skin_light": 2,
+                "skin_heavy": 2,
+                "keloid": 2,
+                "striae": 2,
+                "hemorrhages": 2,
+                "hernias": 3,
+                "ptosis": 3,
+                "tmj": 2,
+                "periodontosis": 1,
+                "dolicho": 3,
+                "gms_light": 2,
+                "gms_expressed": 3,
+                "kyphosis": 2,
+                "chest": 3,
+                "flatfeet": 2,
+                "valgus": 1,
+                "joint": 1,
+                "mvp": 2,
+                "varicose_light": 2,
+                "varicose_heavy": 3,
+                "myopia_light": 1,
+                "myopia_heavy": 2,
+                "gallbladder": 2,
+                "gerd": 2,
+                "hypotension": 1,
+            }
+
+            # Sum of binary features (excluding disease, age, sum, bmi, gms, gms2)
             binary_features = [
+                bmi_under_25,
                 int(values["skin_light"]),
                 int(values["skin_heavy"]),
                 int(values["keloid"]),
@@ -280,22 +289,28 @@ class EditingModePresenter:
                 int(values["gallbladder"]),
                 int(values["gerd"]),
                 int(values["hypotension"]),
-                doctor_id
             ]
 
-            feature_sum = sum(binary_features)
-            disease = 1 if feature_sum >= 5 else 0
+            feature_sum = sum(
+                feature * feature_scores[feature_name]
+                for feature, feature_name in zip(binary_features, feature_scores.keys())
+            )
+            disease = 1 if feature_sum >= 8 else 0
 
             # Create record
             record = [
+                doctor_id,
                 disease,  # Болезнь
-                age,  # Возраст
-                dst,  # ДСТ
                 feature_sum,  # Сумма
-                round(bmi, 2),  # ИМТ
-                gms,  # ГМС
-                gms2,  # ГМС.2
+                age,  # Возраст
+                height,
+                weight,
+                bmi,  # ИМТ
                 bmi_under_25,  # ИМТ<25
+                gms,  # ГМС(1-9)
+                gms2,  # ГМС(1-3)
+                gms_light,  # ГМС легк
+                gms_expressed,  # ГМС выраж
                 int(values["skin_light"]),  # кожа легк
                 int(values["skin_heavy"]),  # кожа тяж
                 int(values["keloid"]),  # Келлоид
@@ -306,8 +321,6 @@ class EditingModePresenter:
                 int(values["tmj"]),  # Хруст ВЧС
                 int(values["periodontosis"]),  # Парадонтоз
                 int(values["dolicho"]),  # Долихостен
-                gms_light,  # ГМС легк
-                gms_expressed,  # ГМС выраж
                 int(values["kyphosis"]),  # Кифоз/лордоз
                 int(values["chest"]),  # Деф гр клет
                 int(values["flatfeet"]),  # Плоскост
@@ -321,18 +334,17 @@ class EditingModePresenter:
                 int(values["gallbladder"]),  # Жел пуз.
                 int(values["gerd"]),  # ГЭРБ
                 int(values["hypotension"]),  # Гипотенз
-                doctor_id
             ]
 
             # Add or update record
             if self.current_record_index == -1:
-                self.model.add_record(record)
+                self.model.add_row(record)
             else:
-                self.model.update_record(self.current_record_index, record)
+                self.model.update_row(self.current_record_index, record)
 
             self.view.update_table(self.model.df)
             self.view.dialog.close()
-            QMessageBox.information(self.view, "Успех!", "Данные успешно сохранены!")
+            self.view.show_msg("Данные успешно сохранены!")
 
         except ValueError as e:
             self.view.show_error(f"Ошибка в данных: {str(e)}")
