@@ -80,7 +80,7 @@ class AnalysisModeView(QMainWindow):
         self.init_ui()
 
         # Меню
-        self.create_action = QAction("Создание и пополнение", self)
+        self.create_action = QAction("Сбор данных", self)
         self.legend_action = QAction("Памятка по признакам", self)
         self.about_action = QAction("О программе", self)
         self.create_menus()
