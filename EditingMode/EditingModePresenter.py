@@ -344,7 +344,8 @@ class EditingModePresenter:
 
             self.view.update_table(self.model.df)
             self.view.dialog.close()
-            self.view.show_msg("Данные успешно сохранены!")
+            self.view.show_msg(f"Данные успешно сохранены!\nЗначение суммы равно {feature_sum}"
+                               f"\nЗначение болезни - {'да' if disease == 1 else 'нет'}")
 
         except ValueError as e:
             self.view.show_error(f"Ошибка в данных: {str(e)}")
