@@ -16,7 +16,7 @@ class ModeSelectionView(QWidget):
     def __init__(self, current_user):
         super().__init__()
         self.current_user = current_user
-        self.btn_create = QPushButton("Создание и пополнение")
+        self.btn_create = QPushButton("Сбор данных")
         self.btn_analyze = QPushButton("Анализ")
         self.init_ui()
 
