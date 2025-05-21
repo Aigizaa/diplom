@@ -37,7 +37,7 @@ class EditingModeView(QMainWindow):
         self.create_menus()
 
     def init_ui(self):
-        self.setWindowTitle(f"Режим создания - {self.current_user['ФИО']}")
+        self.setWindowTitle(f"Режим сбора данных - {self.current_user['ФИО']}")
         self.setWindowState(Qt.WindowState.WindowMaximized)
         icon_path = os.path.abspath("resources/icon.png")
         self.setWindowIcon(QIcon(icon_path))
@@ -166,7 +166,7 @@ class EditingModeView(QMainWindow):
         mode_menu.addAction(self.analysis_action)
 
         # Пункт Создание
-        create_action = QAction("Создание и пополнение", self)
+        create_action = QAction("Сбор данных", self)
         create_action.setCheckable(True)
         create_action.setChecked(True)
         mode_menu.addAction(create_action)
