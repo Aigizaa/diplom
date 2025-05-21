@@ -749,16 +749,9 @@ class AnalysisModePresenter:
                 "\nМетрики качества:"
             ]
 
-            if task_type == "Классификация":
-                acc = self.predictor.evaluate_model()
-                info.append(f"Точность (accuracy): {acc:.4f}")
-            elif task_type == "Регрессия":
-                mae, mse, r2 = self.predictor.evaluate_model()
-                info.extend([
-                    f"Средняя абсолютная ошибка (MAE): {mae:.4f}",
-                    f"Среднеквадратичная ошибка (MSE): {mse:.4f}",
-                    f"Коэффициент детерминации (R²): {r2:.4f}"
-                ])
+            metrics = self.predictor.evaluate_model()
+            metrics_str = "\n".join([f"{key}: {value}" for key, value in metrics.items()])
+            info.append(metrics_str)
 
             model_info = self.predictor.get_info()
             info.append("\nПризнаки:")
