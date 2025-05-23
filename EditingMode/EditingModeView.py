@@ -1,3 +1,5 @@
+import sys
+
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QPushButton, QTableWidget, QTableWidgetItem,
                                QStackedWidget, QMessageBox, QDialog, QFormLayout, QRadioButton,
@@ -7,6 +9,11 @@ from PySide6.QtGui import QAction, QIcon, QPixmap
 import pandas as pd
 import os
 
+def resource_path(relative_path):
+    """ Получает абсолютный путь к ресурсу """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class EditingModeView(QMainWindow):
     def __init__(self, current_user):
@@ -39,7 +46,7 @@ class EditingModeView(QMainWindow):
     def init_ui(self):
         self.setWindowTitle(f"Режим сбора данных - {self.current_user['ФИО']}")
         self.setWindowState(Qt.WindowState.WindowMaximized)
-        icon_path = os.path.abspath("resources/icon.png")
+        icon_path = resource_path("resources/icon.png")
         self.setWindowIcon(QIcon(icon_path))
 
         central_widget = QWidget()

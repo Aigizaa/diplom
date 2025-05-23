@@ -1,0 +1,9 @@
+PySide6
+pandas
+openpyxl
+matplotlib
+seaborn
+scikit-learn
+pyinstaller
+numpy
+google_auth_oauthlib

@@ -1,4 +1,5 @@
 import os
+import sys
 import io
 import pandas as pd
 from google.oauth2.credentials import Credentials
@@ -12,12 +13,19 @@ import requests
 from urllib.request import urlopen
 from urllib.error import URLError
 
+def get_external_path(filename):
+    """
+    Возвращает путь к файлам в папке 'resources' рядом с exe или скриптом.
+    """
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.join(os.path.dirname(sys.executable), 'resources')
+    else:
+        base_path = os.path.join(os.path.abspath("."), 'resources')
+    return os.path.join(base_path, filename)
 
-# Настройки Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
-CREDENTIALS_FILE = 'client_secret.json'
-TOKEN_FILE = 'token.json'
-
+CREDENTIALS_FILE = get_external_path('client_secret.json')
+TOKEN_FILE = get_external_path('token.json')
 
 class GoogleDriveService:
     def __init__(self, data=None, parent_ui=None):
