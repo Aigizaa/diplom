@@ -578,24 +578,25 @@ class AnalysisModePresenter:
 
                 # Визуализация кластеров
                 self.view.figure.clear()
-
-                # размер графика (ширина x высота в дюймах)
-                self.view.figure.set_size_inches(8, 6)
-
+                self.view.figure.set_size_inches(10, 6)
+                self.view.figure.tight_layout(rect=[0, 0, 0.8, 1])  # Оставляем 20% справа для легенды
                 ax = self.view.figure.add_subplot(111)
-
-                # отступы вокруг графика
                 self.view.figure.tight_layout(pad=2.0)
 
+                # Преобразуем метки кластеров в категориальный тип с явными метками
+                cluster_labels = pd.Series(cluster_labels).astype('category')
+                cluster_names = [f'Кластер {i}' for i in cluster_labels.cat.categories]
+
                 if len(features) == 2:
-                    sns.scatterplot(
+                    scatter = sns.scatterplot(
                         x=self.data[features[0]],
                         y=self.data[features[1]],
                         hue=cluster_labels,
                         palette='viridis',
                         ax=ax,
-                        s=40,  # Размер точек
-                        alpha=0.7  # Прозрачность
+                        s=40,
+                        alpha=0.7,
+                        hue_order=cluster_labels.cat.categories  # Явный порядок кластеров
                     )
                     ax.set_title("2D визуализация кластеров", fontsize=10)
                 else:
@@ -604,24 +605,34 @@ class AnalysisModePresenter:
                     pca = PCA(n_components=2)
                     reduced = pca.fit_transform(self.data[features])
                     reduced_df = pd.DataFrame(reduced, columns=['PC1', 'PC2'])
-                    sns.scatterplot(
+                    scatter = sns.scatterplot(
                         x=reduced_df['PC1'],
                         y=reduced_df['PC2'],
                         hue=cluster_labels,
                         palette='viridis',
                         ax=ax,
                         s=40,
-                        alpha=0.7
+                        alpha=0.7,
+                        hue_order=cluster_labels.cat.categories  # Явный порядок кластеров
                     )
                     ax.set_title("PCA визуализация кластеров (2 главных компоненты)", fontsize=10)
+
+                # Настройка легенды
+                handles, _ = scatter.get_legend_handles_labels()
+                ax.legend(
+                    handles=handles,
+                    title='Кластеры',
+                    labels=cluster_names,
+                    fontsize=8,
+                    loc='upper right',  # Помещаем внутрь графика
+                    bbox_to_anchor=(1, 1),  # Сдвигаем немного влево
+                    framealpha=0.5  # Полупрозрачный фон
+                )
 
                 # Уменьшаем размер шрифта подписей
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.xaxis.label.set_size(8)
                 ax.yaxis.label.set_size(8)
-
-                # Компактное расположение легенды
-                ax.legend(fontsize=8, bbox_to_anchor=(1.05, 1), loc='upper left')
 
                 self.view.canvas.draw()
                 self.view.analysis_text.setPlainText("\n".join(report))

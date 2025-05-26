@@ -29,6 +29,7 @@ class LoginView(QDialog):
         icon_path = resource_path("resources/icon2.png")
         self.setWindowIcon(QIcon(icon_path))
         layout = QVBoxLayout()
+        self.setFixedSize(450, 550)
         layout.setContentsMargins(30, 30, 30, 30)
         icon_label = QLabel()
         try:
@@ -43,7 +44,7 @@ class LoginView(QDialog):
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Название приложения
-        title_label = QLabel("Медицинский анализатор данных")
+        title_label = QLabel("Платформа для анализа \nбиомедицинских данных \nMedicalAnalyzer")
         title_label.setStyleSheet("""
             font-size: 22px;
             font-weight: bold;
