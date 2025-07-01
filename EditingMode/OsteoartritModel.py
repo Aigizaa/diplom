@@ -5,14 +5,14 @@ class OsteoartritModel:
     def __init__(self):
         self.df = pd.DataFrame(columns=[
             "Врач",
-            "Болезнь",
+            "ДСТ",
             "Сумма",
             "Возраст",
             "Рост",
             "Вес",
             "ИМТ",
             "ИМТ<25",
-            "ГМС(1-9)",
+            "ГМС(0-9)",
             "ГМС(1-3)",
             "ГМС: легк.степ.",
             "ГМС: тяж.степ.",
@@ -40,11 +40,12 @@ class OsteoartritModel:
             "ГЭРБ",
             "Гипотензия"
         ])
-
+        self.df["Возраст"] = self.df["Возраст"].astype("Int32")
         self.num_of_columns = len(self.df.columns)
 
     def add_row(self, record):
         new_row = pd.DataFrame([record], columns=self.df.columns)
+        self.df["Возраст"] = self.df["Возраст"].astype("Int64")
         self.df = pd.concat([self.df, new_row], ignore_index=True)
 
     def update_row(self, index, record):

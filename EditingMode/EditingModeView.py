@@ -1,19 +1,19 @@
-import sys
-
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QPushButton, QTableWidget, QTableWidgetItem,
                                QStackedWidget, QMessageBox, QDialog, QFormLayout, QRadioButton,
                                QLineEdit, QComboBox, QInputDialog, QSplitter, QListWidget, QGroupBox)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QIcon, QPixmap
-import pandas as pd
 import os
+import sys
+
 
 def resource_path(relative_path):
     """ Получает абсолютный путь к ресурсу """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
 
 class EditingModeView(QMainWindow):
     def __init__(self, current_user):
@@ -92,14 +92,14 @@ class EditingModeView(QMainWindow):
         self.table.setColumnCount(33)
         self.table.setHorizontalHeaderLabels([
             "Врач",
-            "Болезнь",
+            "ДСТ",
             "Сумма",
             "Возраст",
             "Рост",
             "Вес",
             "ИМТ",
             "ИМТ<25",
-            "ГМС(1-9)",
+            "ГМС(0-9)",
             "ГМС(1-3)",
             "ГМС: легк.степ.",
             "ГМС: тяж.степ.",
@@ -221,7 +221,7 @@ class EditingModeView(QMainWindow):
         self.gms_image.setPixmap(QPixmap("Pictures/ГМС.png").scaled(900, 700, Qt.AspectRatioMode.KeepAspectRatio,
                                                                     Qt.TransformationMode.SmoothTransformation))
         layout2.addWidget(self.gms_image)
-        layout2.addWidget(QLabel("Гипермобильность суставов (1-9):"))
+        layout2.addWidget(QLabel("Гипермобильность суставов (0-9):"))
         self.gms_edit = QLineEdit()
         layout2.addWidget(self.gms_edit)
         self.stacked_widget.addWidget(page2)

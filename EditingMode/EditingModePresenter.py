@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QListWidgetItem, QTableWidget, QTableWidgetItem, 
                                QLineEdit, QComboBox, QInputDialog, QVBoxLayout, QLabel)
 from PySide6.QtCore import Qt
 import pandas as pd
+import os
 
 
 class EditingModePresenter:
@@ -19,6 +20,7 @@ class EditingModePresenter:
         # Initialize view
         self.view.update_table(self.model.df)
         self.update_columns_list()
+        pd.set_option('display.float_format', '{:.0f}'.format)  # Убирает .0 для float
 
     def connect_signals(self):
         self.view.btn_load_local.clicked.connect(self.load_local_data)
@@ -60,10 +62,10 @@ class EditingModePresenter:
 
         # Convert to input format
         values = {
-            "age": record.iloc[3],
-            "height": record.iloc[4],
-            "weight": record.iloc[5],
-            "gms": record.iloc[8],
+            "age": int(record.iloc[3]),
+            "height": int(record.iloc[4]),
+            "weight": int(record.iloc[5]),
+            "gms": int(record.iloc[8]),
             "skin_light": record.iloc[12],
             "skin_heavy": record.iloc[13],
             "keloid": record.iloc[14],
@@ -160,10 +162,10 @@ class EditingModePresenter:
         elif self.current_page == 1:  # GMS
             try:
                 gms = int(values["gms"])
-                if not 1 <= gms <= 9:
+                if not 0 <= gms <= 9:
                     raise ValueError
             except ValueError:
-                self.view.show_error("ГМС должно быть целым числом от 1 до 9")
+                self.view.show_error("ГМС должно быть целым числом от 0 до 9")
                 return False
 
         # Other pages with 0/1 values
@@ -207,7 +209,7 @@ class EditingModePresenter:
         values = self.view.get_input_values()
 
         # Получаем ID врача из current_user
-        doctor_id = self.view.current_user.get('ID', 0)
+        doctor_id = self.view.current_user.get('ID', 1)
 
         # Calculate derived values
         try:
@@ -307,7 +309,7 @@ class EditingModePresenter:
                 weight,
                 bmi,  # ИМТ
                 bmi_under_25,  # ИМТ<25
-                gms,  # ГМС(1-9)
+                gms,  # ГМС(0-9)
                 gms2,  # ГМС(1-3)
                 gms_light,  # ГМС легк
                 gms_expressed,  # ГМС выраж
@@ -368,12 +370,31 @@ class EditingModePresenter:
             return  # Пользователь отменил выбор файла
 
         try:
+            # Проверка размера файла перед чтением
+            if os.path.getsize(file_path) == 0:
+                raise ValueError("Файл пустой")
+
+            if file_path.lower().endswith(('.xlsx', '.xls')):
+                # Чтение Excel файла
+                self.data = pd.read_excel(file_path, dtype={'Возраст': 'int64'})
+                # Дополнительная проверка для Excel
+                if self.data.empty:
+                    raise ValueError("Файл Excel не содержит данных")
+            elif file_path.lower().endswith('.csv'):
+                # Чтение CSV файла с автоматическим определением разделителя
+                self.data = pd.read_csv(file_path, encoding='utf-8-sig', dtype={'Возраст': 'int64'})
+                # Проверка для CSV (могли прочитать только заголовки)
+                if self.data.empty or len(self.data.columns) == 0:
+                    raise ValueError("CSV файл не содержит данных")
+
             if file_path.lower().endswith(('.xlsx', '.xls')):
                 # Чтение Excel файла
                 self.model.df = pd.read_excel(file_path)
+                pd.set_option('display.float_format', '{:.0f}'.format)  # Убирает .0 для float
             elif file_path.lower().endswith('.csv'):
                 # Чтение CSV файла с автоматическим определением разделителя
-                self.model.df = pd.read_csv(file_path, sep=None, engine='python')
+                self.model.df = pd.read_csv(file_path, encoding='utf-8-sig')
+                pd.set_option('display.float_format', '{:.0f}'.format)  # Убирает .0 для float
             else:
                 pass
 
@@ -381,6 +402,9 @@ class EditingModePresenter:
             self.current_file = file_path
             self.view.update_table(self.model.df)
             self.update_columns_list()
+
+            self.model.df['Возраст'] = self.model.df['Возраст'].astype('int64')
+
             QMessageBox.information(self.view, "Успех", "Файл успешно загружен")
 
         except Exception as e:
@@ -398,6 +422,8 @@ class EditingModePresenter:
         )
         if file_path:
             try:
+                if self.model.df is None or self.model.df.empty:
+                    raise ValueError("Нет данных для сохранения!")
                 if file_path.endswith('.csv'):
                     self.model.df.to_csv(file_path, index=False)
                 else:
@@ -408,12 +434,14 @@ class EditingModePresenter:
 
     def save_local_data(self):
         """Сохранение данных в Excel"""
-        if self.model.df.empty:
+        if self.model.df is None or self.model.df.empty:
             QMessageBox.warning(self.view, "Ошибка", "Нет данных для сохранения!")
             return
 
         if self.current_file:
             try:
+                if self.model.df is None or self.model.df.empty:
+                    raise ValueError("Нет данных для сохранения!")
                 if self.current_file.endswith('.csv'):
                     self.model.df.to_csv(self.current_file, index=False)
                 else:
@@ -428,12 +456,15 @@ class EditingModePresenter:
     def load_data_from_cloud(self):
         """Загружает данные из Google Диска."""
         cloud_service = GoogleDriveService(parent_ui=self.view)
-        self.model.df, file, error = cloud_service.load_from_cloud()
 
-        if error:
+        df, file, error = cloud_service.load_from_cloud()
+        pd.set_option('display.float_format', '{:.0f}'.format)  # Убирает .0 для float
+        if error or df is None:
             QMessageBox.critical(self.view, "Ошибка", error)
         else:
             # Обновление интерфейса
+            self.model.df = df
+            df['Возраст'] = df['Возраст'].astype('int64')
             self.view.update_table(self.model.df)
             self.update_columns_list()
             self.view.file_path_edit.setText(file['name'])
@@ -441,12 +472,14 @@ class EditingModePresenter:
 
     def save_data_to_cloud(self):
         """Сохраняет данные в Google Диск."""
-        if self.model.df.empty:
+        if self.model.df is None or self.model.df.empty:
             QMessageBox.warning(self.view, "Ошибка", "Нет данных для сохранения!")
             return
 
         cloud_service = GoogleDriveService(self.model.df, parent_ui=self.view)
         result = cloud_service.save_to_cloud(self.view.current_user['ФИО'])
+        if result is None:
+            return
         if result.startswith("Ошибка"):
             QMessageBox.critical(self.view, "Ошибка", result)
         else:
