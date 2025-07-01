@@ -23,7 +23,13 @@ class ModelSettingsData:
                 'max_depth': 5,
                 'min_samples_split': 2,
                 'min_samples_leaf': 1
+            },
+            "Градиентный бустинг": {
+                'n_estimators': 100,
+                'learning_rate': 0.1,
+                'max_depth': 5
             }
+
         }
 
     def get_settings(self, model_type):
@@ -55,6 +61,10 @@ class ModelSettingsView(QDialog):
         self.max_depth_tree = QSpinBox()
         self.min_samples_split_tree = QSpinBox()
         self.min_samples_leaf_tree = QSpinBox()
+
+        self.n_estimators_gb = QSpinBox()
+        self.learning_rate = QDoubleSpinBox()
+        self.max_depth_gb = QSpinBox()
 
         self.init_ui()
 
@@ -98,6 +108,18 @@ class ModelSettingsView(QDialog):
 
             self.min_samples_leaf_tree.setRange(1, 20)
             layout.addRow("Мин. элементов в листе:", self.min_samples_leaf_tree)
+
+        elif self.model_type == "Градиентный бустинг":
+            self.n_estimators_gb.setRange(10, 500)
+            layout.addRow("Количество деревьев:", self.n_estimators_gb)
+
+            self.learning_rate.setRange(0.01, 1.00)
+            self.learning_rate.setSingleStep(0.01)
+            layout.addRow("Скорость обучения:", self.learning_rate)
+
+            self.max_depth_gb.setRange(1, 100)
+            layout.addRow("Макс. глубина деревьев:", self.max_depth_gb)
+
 
         # Кнопки
         btn_box = QHBoxLayout()
@@ -145,6 +167,12 @@ class ModelSettingsView(QDialog):
                 'min_samples_split': self.min_samples_split_tree.value(),
                 'min_samples_leaf': self.min_samples_leaf_tree.value()
             })
+        elif self.model_type == "Градиентный бустинг":
+            settings.update({
+                'n_estimators': self.n_estimators_gb.value(),
+                'learning_rate': self.learning_rate.value(),
+                'max_depth': self.max_depth_gb.value()
+            })
         return settings
 
     def load_settings(self, settings):
@@ -167,6 +195,11 @@ class ModelSettingsView(QDialog):
             self.max_depth_tree.setValue(settings.get('max_depth', 5))
             self.min_samples_split_tree.setValue(settings.get('min_samples_split', 2))
             self.min_samples_leaf_tree.setValue(settings.get('min_samples_leaf', 1))
+
+        elif self.model_type == "Градиентный бустинг":
+            self.n_estimators_gb.setValue(settings.get('n_estimators', 100))
+            self.max_depth_gb.setValue(settings.get('max_depth', 10))
+            self.learning_rate.setValue(settings.get('learning_rate', 0.1))
 
 
 class ModelSettingsPresenter:
