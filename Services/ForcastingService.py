@@ -7,6 +7,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 import pandas as pd
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 
 
 class ForcastingService:
@@ -88,6 +89,21 @@ class ForcastingService:
                     min_samples_leaf=settings.get('min_samples_leaf_tree', 1),
                     random_state=42
                 )
+        elif model_type == "Градиентный бустинг":
+            if task_type == "Классификация":
+                self.model = GradientBoostingClassifier(
+                    n_estimators =settings.get('n_estimators', 100),
+                    max_depth=settings.get('max_depth', None),
+                    learning_rate=settings.get('learning_rate', 0.1),
+                    random_state=42
+                )
+            else:
+                self.model = GradientBoostingRegressor(
+                    n_estimators=settings.get('n_estimators', 100),
+                    max_depth=settings.get('max_depth', None),
+                    learning_rate=settings.get('learning_rate', 0.1),
+                    random_state=42
+                )
 
     def train_model(self):
         self.model.fit(self.X_train, self.y_train)
@@ -98,7 +114,7 @@ class ForcastingService:
         if self.task_type == "Классификация":
             accuracy = accuracy_score(self.y_test, y_pred)
             precision = precision_score(self.y_test, y_pred, average='weighted')
-            recall = recall_score(self.y_test, y_pred, average='weighted')
+            recall = recall_score(self.y_test, y_pred)
             f1 = f1_score(self.y_test, y_pred, average='weighted')
             roc_auc = roc_auc_score(self.y_test, y_pred)
             # Чувствительность и специфичность
@@ -114,7 +130,7 @@ class ForcastingService:
                 "F1-Score": round(f1, 4),
                 "ROC-AUC": round(roc_auc, 4)
             }
-        elif self.task_type == "Регрессия":
+        elif self.task_type == "Прогнозирование":
             mae = mean_absolute_error(self.y_test, y_pred)
             mse = mean_squared_error(self.y_test, y_pred)
             rmse = math.sqrt(mse)
@@ -161,3 +177,5 @@ class ForcastingService:
 
     def make_prediction(self, data):
         return self.model.predict(data)[0]
+
+
