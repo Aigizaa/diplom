@@ -1,5 +1,4 @@
 import os
-
 import pandas as pd
 import numpy as np
 from PySide6.QtGui import QFont
@@ -61,6 +60,7 @@ class ClusterDialog(QDialog):
     def get_cluster_count(self):
         return self.cluster_spin.value()
 
+
 class AnalysisModePresenter:
     def __init__(self, view: AnalysisModeView):
         self.view = view
@@ -109,102 +109,23 @@ class AnalysisModePresenter:
 
         try:
             # Проверка размера файла перед чтением
-            file_size = os.path.getsize(file_path)
-            if file_size == 0:
-                QMessageBox.critical(self.view, "Ошибка",
-                                     "Выбранный файл пустой (0 байт).\n"
-                                     "Пожалуйста, выберите файл с данными.")
-                return
+            if os.path.getsize(file_path) == 0:
+                raise ValueError("Выбранный файл пустой!")
 
-            # Чтение данных с предварительной проверкой количества строк
             if file_path.lower().endswith(('.xlsx', '.xls')):
-                # Для Excel сначала считываем количество строк без загрузки всего файла
-                temp_df = pd.read_excel(file_path, nrows=1)
-                if temp_df.empty:
-                    QMessageBox.critical(self.view, "Ошибка",
-                                         "Файл Excel не содержит данных или имеет неправильный формат.")
-                    return
-
-                total_rows = pd.read_excel(file_path, usecols=[0]).shape[0]
-                if total_rows == 0:
-                    QMessageBox.critical(self.view, "Ошибка",
-                                         "Файл Excel не содержит строк с данными.")
-                    return
-
-                if total_rows > 50000:
-                    reply = QMessageBox.question(
-                        self.view,
-                        "Большой объем данных",
-                        f"Файл содержит {total_rows} строк (максимум 50 000).\n"
-                        "Загрузить первые 50 000 строк?",
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                    )
-                    if reply == QMessageBox.StandardButton.Yes:
-                        self.data = pd.read_excel(file_path, nrows=50000)
-                    else:
-                        return
-                else:
-                    self.data = pd.read_excel(file_path)
-
+                # Чтение Excel файла
+                self.data = pd.read_excel(file_path)
+                # Дополнительная проверка для Excel
+                if self.data.empty:
+                    raise ValueError("Файл Excel не содержит данных")
             elif file_path.lower().endswith('.csv'):
-                # Для CSV сначала проверяем, не пустой ли файл
-                with open(file_path, 'r', encoding='utf-8-sig') as f:
-                    first_line = f.readline()
-                    if not first_line:
-                        QMessageBox.critical(self.view, "Ошибка",
-                                             "CSV файл не содержит данных.")
-                        return
-
-                    # Сбрасываем позицию чтения и считаем строки
-                    f.seek(0)
-                    total_rows = sum(1 for _ in f) - 1  # минус заголовок
-
-                if total_rows == 0:
-                    QMessageBox.critical(self.view, "Ошибка",
-                                         "CSV файл не содержит строк с данными (только заголовок).")
-                    return
-
-                if total_rows > 50000:
-                    reply = QMessageBox.question(
-                        self.view,
-                        "Большой объем данных",
-                        f"Файл содержит {total_rows} строк (максимум 50 000).\n"
-                        "Загрузить первые 50 000 строк?",
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                    )
-                    if reply == QMessageBox.StandardButton.Yes:
-                        self.data = pd.read_csv(file_path, nrows=50000, encoding='utf-8-sig')
-                    else:
-                        return
-                else:
-                    # Читаем CSV с автоматическим определением разделителя
-                    self.data = pd.read_csv(file_path, encoding='utf-8-sig')
-
-                    # Если возникли проблемы с разделителем
-                    if len(self.data.columns) == 1:
-                        for sep in [';', '\t', '|']:
-                            try:
-                                self.data = pd.read_csv(file_path, sep=sep, encoding='utf-8-sig')
-                                if len(self.data.columns) > 1:
-                                    break
-                            except:
-                                continue
+                # Чтение CSV файла с автоматическим определением разделителя
+                self.data = pd.read_csv(file_path, encoding='utf-8-sig')
+                # Проверка для CSV (могли прочитать только заголовки)
+                if self.data.empty or len(self.data.columns) == 0:
+                    raise ValueError("CSV файл не содержит данных")
             else:
                 raise ValueError("Неподдерживаемый формат файла")
-
-            # Дополнительная проверка данных
-            if self.data.empty:
-                QMessageBox.critical(self.view, "Ошибка",
-                                     "Файл не содержит данных после обработки.")
-                return
-
-            if len(self.data) > 50000:
-                self.data = self.data.head(50000)
-                QMessageBox.warning(
-                    self.view,
-                    "Превышен лимит",
-                    "Загружены только первые 50 000 строк"
-                )
 
             self.original_data = self.data.copy()
             self.view.file_path_edit.setText(file_path)
@@ -220,34 +141,15 @@ class AnalysisModePresenter:
             self.show_stats()
             self.update_prediction_combos()
 
-            QMessageBox.information(
-                self.view,
-                "Успех",
-                f"Данные успешно загружены!\nЗагружено строк: {len(self.data)}"
-            )
+            QMessageBox.information(self.view, "Успех", f"Данные успешно загружены!\nЗагружено строк: {len(self.data)}")
 
-        except UnicodeDecodeError:
-            # Если utf-8-sig не сработал, пробуем другие кодировки
-            try:
-                self.data = pd.read_csv(file_path, encoding='cp1251')
-                if self.data.empty:
-                    QMessageBox.critical(self.view, "Ошибка",
-                                         "Файл не содержит данных (после чтения в cp1251).")
-                    return
-
-                model = PandasModel(self.data)
-                self.view.table_view.setModel(model)
-                self.update_columns_list()
-                QMessageBox.information(self.view, "Успех",
-                                        "Данные загружены (использована кодировка cp1251)")
-            except Exception as e:
-                QMessageBox.critical(self.view, "Ошибка",
-                                     f"Ошибка загрузки файла:\n{str(e)}\n"
-                                     "Попробуйте сохранить файл в UTF-8 или Excel формате.")
+        except ValueError as e:
+            if "пустой" in str(e).lower():
+                QMessageBox.critical(self.view, "Ошибка", "Ошибка: Файл пустой")
+            else:
+                QMessageBox.critical(self.view, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
         except Exception as e:
-            QMessageBox.critical(self.view, "Ошибка",
-                                 f"Ошибка загрузки файла:\n{str(e)}\n"
-                                 "Проверьте формат и содержимое файла.")
+            QMessageBox.critical(self.view, "Ошибка", f"Ошибка загрузки файла:\n{str(e)}")
 
     def save_local_data(self):
         """Сохранение данных в файл"""
@@ -578,25 +480,24 @@ class AnalysisModePresenter:
 
                 # Визуализация кластеров
                 self.view.figure.clear()
-                self.view.figure.set_size_inches(10, 6)
-                self.view.figure.tight_layout(rect=[0, 0, 0.8, 1])  # Оставляем 20% справа для легенды
+
+                # размер графика (ширина x высота в дюймах)
+                self.view.figure.set_size_inches(8, 6)
+
                 ax = self.view.figure.add_subplot(111)
+
+                # отступы вокруг графика
                 self.view.figure.tight_layout(pad=2.0)
 
-                # Преобразуем метки кластеров в категориальный тип с явными метками
-                cluster_labels = pd.Series(cluster_labels).astype('category')
-                cluster_names = [f'Кластер {i}' for i in cluster_labels.cat.categories]
-
                 if len(features) == 2:
-                    scatter = sns.scatterplot(
+                    sns.scatterplot(
                         x=self.data[features[0]],
                         y=self.data[features[1]],
                         hue=cluster_labels,
                         palette='viridis',
                         ax=ax,
-                        s=40,
-                        alpha=0.7,
-                        hue_order=cluster_labels.cat.categories  # Явный порядок кластеров
+                        s=40,  # Размер точек
+                        alpha=0.7  # Прозрачность
                     )
                     ax.set_title("2D визуализация кластеров", fontsize=10)
                 else:
@@ -605,34 +506,24 @@ class AnalysisModePresenter:
                     pca = PCA(n_components=2)
                     reduced = pca.fit_transform(self.data[features])
                     reduced_df = pd.DataFrame(reduced, columns=['PC1', 'PC2'])
-                    scatter = sns.scatterplot(
+                    sns.scatterplot(
                         x=reduced_df['PC1'],
                         y=reduced_df['PC2'],
                         hue=cluster_labels,
                         palette='viridis',
                         ax=ax,
                         s=40,
-                        alpha=0.7,
-                        hue_order=cluster_labels.cat.categories  # Явный порядок кластеров
+                        alpha=0.7
                     )
                     ax.set_title("PCA визуализация кластеров (2 главных компоненты)", fontsize=10)
-
-                # Настройка легенды
-                handles, _ = scatter.get_legend_handles_labels()
-                ax.legend(
-                    handles=handles,
-                    title='Кластеры',
-                    labels=cluster_names,
-                    fontsize=8,
-                    loc='upper right',  # Помещаем внутрь графика
-                    bbox_to_anchor=(1, 1),  # Сдвигаем немного влево
-                    framealpha=0.5  # Полупрозрачный фон
-                )
 
                 # Уменьшаем размер шрифта подписей
                 ax.tick_params(axis='both', which='major', labelsize=8)
                 ax.xaxis.label.set_size(8)
                 ax.yaxis.label.set_size(8)
+
+                # Компактное расположение легенды
+                ax.legend(fontsize=8, bbox_to_anchor=(1.05, 1), loc='upper left')
 
                 self.view.canvas.draw()
                 self.view.analysis_text.setPlainText("\n".join(report))
@@ -827,14 +718,16 @@ class AnalysisModePresenter:
                 "Случайный лес",
                 "Логистическая регрессия",
                 "K-ближайших соседей (KNN)",
-                "Дерево решений"
+                "Дерево решений",
+                "Градиентный бустинг"
             ]
-        elif task_type == "Регрессия":
+        elif task_type == "Прогнозирование":
             models = [
                 "Случайный лес",
                 "Линейная регрессия",
                 "K-ближайших соседей (KNN)",
-                "Дерево решений"
+                "Дерево решений",
+                "Градиентный бустинг"
             ]
         else:
             models = []

@@ -1,6 +1,4 @@
 import os
-import sys
-
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtGui import QAction, QIcon
@@ -10,12 +8,15 @@ from PySide6.QtWidgets import (
     QCheckBox, QTableView, QTextEdit, QGridLayout, QScrollArea, QSplitter
 )
 from PySide6.QtCore import Qt
+import sys
+
 
 def resource_path(relative_path):
     """ Получает абсолютный путь к ресурсу """
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
+
 
 class AnalysisModeView(QMainWindow):
     def __init__(self, current_user):
@@ -158,7 +159,6 @@ class AnalysisModeView(QMainWindow):
         self.analysis_text.setStyleSheet("font-size: 11pt;")
         layout_tab_analysis = QVBoxLayout(self.tab_analysis)
 
-
         # Группа кнопок анализа
         analysis_buttons = QHBoxLayout()
         analysis_buttons.addWidget(self.btn_correlation)
@@ -179,13 +179,13 @@ class AnalysisModeView(QMainWindow):
         label_task = QLabel("Задача:")
         label_task.setFixedWidth(50)
         model_layout.addWidget(label_task, 0, 0)
-        self.task_type_combo.addItems(["Классификация", "Регрессия"])
+        self.task_type_combo.addItems(["Классификация", "Прогнозирование"])
         model_layout.addWidget(self.task_type_combo, 0, 1)
         label_model = QLabel("Модель:")
         label_model.setFixedWidth(50)
         model_layout.addWidget(label_model, 0, 2)
         self.model_combo.addItems(
-           ["Случайный лес", "Логистическая регрессия", "K-ближайших соседей (KNN)", "Дерево решений"])
+           ["Случайный лес", "Логистическая регрессия", "K-ближайших соседей (KNN)", "Дерево решений", "Градиентный бустинг"])
 
         model_layout.addWidget(self.model_combo, 0, 3)
         model_layout.addWidget(self.btn_model_settings, 0, 4)
